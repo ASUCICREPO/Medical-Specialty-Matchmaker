@@ -154,6 +154,10 @@ frontend:
       - frontend/.next/cache/**/*`,
       environmentVariables: [
         {
+          name: 'AMPLIFY_MONOREPO_APP_ROOT',
+          value: 'frontend'
+        },
+        {
           name: 'NEXT_PUBLIC_API_URL',
           value: `${chatbotApi.url}chatbot`
         },
