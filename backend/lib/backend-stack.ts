@@ -134,24 +134,26 @@ export class MSMBackendStack extends cdk.Stack {
       accessToken: githubSecret.secretValue.unsafeUnwrap(),
       platform: 'WEB_COMPUTE',
       buildSpec: `version: 1
-frontend:
-  phases:
-    preBuild:
-      commands:
-        - cd frontend
-        - npm ci
-    build:
-      commands:
-        - cd frontend
-        - npm run build
-  artifacts:
-    baseDirectory: frontend/.next
-    files:
-      - '**/*'
-  cache:
-    paths:
-      - frontend/node_modules/**/*
-      - frontend/.next/cache/**/*`,
+applications:
+  - frontend:
+      phases:
+        preBuild:
+          commands:
+            - cd frontend
+            - npm ci
+        build:
+          commands:
+            - cd frontend
+            - npm run build
+      artifacts:
+        baseDirectory: frontend/.next
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - frontend/node_modules/**/*
+          - frontend/.next/cache/**/*
+    appRoot: frontend`,
       environmentVariables: [
         {
           name: 'AMPLIFY_MONOREPO_APP_ROOT',
