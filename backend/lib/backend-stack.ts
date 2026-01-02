@@ -135,25 +135,27 @@ export class MSMBackendStack extends cdk.Stack {
       platform: 'WEB_COMPUTE',
       buildSpec: `version: 1
 applications:
-  - frontend:
+  - appRoot: frontend
+    frontend:
       phases:
         preBuild:
           commands:
-            - cd frontend
             - npm ci
         build:
           commands:
-            - cd frontend
+            - echo "NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL" > .env.production
+            - echo "NEXT_PUBLIC_CHATBOT_API_URL=$NEXT_PUBLIC_CHATBOT_API_URL" >> .env.production
+            - echo "NEXT_PUBLIC_CHATBOT_URL=$NEXT_PUBLIC_CHATBOT_URL" >> .env.production
+            - echo "NEXT_PUBLIC_DATA_URL=$NEXT_PUBLIC_DATA_URL" >> .env.production
             - npm run build
       artifacts:
-        baseDirectory: frontend/.next
+        baseDirectory: .next
         files:
           - '**/*'
       cache:
         paths:
-          - frontend/node_modules/**/*
-          - frontend/.next/cache/**/*
-    appRoot: frontend`,
+          - node_modules/**/*
+          - .next/cache/**/*`,
       environmentVariables: [
         {
           name: 'AMPLIFY_MONOREPO_APP_ROOT',
