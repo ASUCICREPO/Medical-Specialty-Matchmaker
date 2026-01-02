@@ -10,6 +10,14 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  
+  /* WTI Brand Colors */
+  --color-wti-red: #db5642;
+  --color-wti-red-hover: #c74937;
+  --color-wti-teal: #4db9d6;
+  --color-wti-dark-teal: #376e81;
+  --color-wti-navy: #021e42;
+  --color-wti-gold: #f7cf56;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,4 +31,28 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Custom input styling for darker text and placeholders */
+input, textarea, select {
+  color: #1f2937 !important; /* Dark gray text */
+}
+
+input::placeholder, textarea::placeholder {
+  color: #6b7280 !important; /* Darker placeholder text */
+  opacity: 1 !important;
+}
+
+/* Focus states */
+input:focus, textarea:focus, select:focus {
+  color: #111827 !important; /* Even darker on focus */
+}
+
+/* Disabled states */
+input:disabled, textarea:disabled, select:disabled {
+  color: #9ca3af !important;
+}
+
+input:disabled::placeholder, textarea:disabled::placeholder {
+  color: #d1d5db !important;
 }

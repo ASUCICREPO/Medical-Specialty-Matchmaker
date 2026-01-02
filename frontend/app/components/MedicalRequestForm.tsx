@@ -85,7 +85,7 @@ export function MedicalRequestForm({ onSubmit, isLoading, prefilledData }: Medic
               type="text"
               value={formData.doctorName}
               onChange={(e) => handleChange('doctorName', e.target.value)}
-              className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white ${
+              className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white placeholder-gray-600 ${
                 errors.doctorName ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Dr. John Smith"
@@ -101,7 +101,7 @@ export function MedicalRequestForm({ onSubmit, isLoading, prefilledData }: Medic
               type="text"
               value={formData.location}
               onChange={(e) => handleChange('location', e.target.value)}
-              className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white ${
+              className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white placeholder-gray-600 ${
                 errors.location ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="City, Country or Hospital Name"
@@ -119,7 +119,7 @@ export function MedicalRequestForm({ onSubmit, isLoading, prefilledData }: Medic
               type="email"
               value={formData.email}
               onChange={(e) => handleChange('email', e.target.value)}
-              className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white ${
+              className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white placeholder-gray-600 ${
                 errors.email ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="doctor@hospital.com"
@@ -135,7 +135,7 @@ export function MedicalRequestForm({ onSubmit, isLoading, prefilledData }: Medic
               type="number"
               value={formData.patientAge}
               onChange={(e) => handleChange('patientAge', e.target.value)}
-              className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white ${
+              className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white placeholder-gray-600 ${
                 errors.patientAge ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="25"
@@ -153,7 +153,7 @@ export function MedicalRequestForm({ onSubmit, isLoading, prefilledData }: Medic
             value={formData.symptoms}
             onChange={(e) => handleChange('symptoms', e.target.value)}
             rows={4}
-            className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white ${
+            className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white placeholder-gray-600 ${
               errors.symptoms ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder="Describe the patient's symptoms, condition, and any relevant medical history. Please avoid including any personally identifiable information."
@@ -184,7 +184,7 @@ export function MedicalRequestForm({ onSubmit, isLoading, prefilledData }: Medic
             value={formData.additionalInfo}
             onChange={(e) => handleChange('additionalInfo', e.target.value)}
             rows={3}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white placeholder-gray-600"
             placeholder="Any additional context, previous treatments, or specific questions you have..."
           />
         </div>

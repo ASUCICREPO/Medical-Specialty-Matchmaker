@@ -52,20 +52,18 @@ def handle_submit_request(data: dict) -> dict:
         item = {
             'id': request_id,
             'doctorName': data.get('doctorName', ''),
+            'hospital': data.get('hospital', ''),  # Added hospital/clinic name
             'location': data.get('location', ''),
             'email': data.get('email', ''),
-            'patientAge': str(data.get('patientAge', '')),
+            'ageGroup': data.get('ageGroup', ''),  # Required age group (Adult/Child)
             'symptoms': data.get('symptoms', ''),
             'urgency': data.get('urgency', 'medium'),
             'additionalInfo': data.get('additionalInfo', ''),
             'specialty': data.get('specialty', ''),
             'subspecialty': data.get('subspecialty', ''),
-            'recommendedSpecialties': data.get('recommendedSpecialties', []),
             'reasoning': data.get('reasoning', ''),
             'confidence': convert_to_decimal(data.get('confidence', 0)),
-            'source': data.get('source', 'unknown'),
             'timestamp': timestamp.isoformat(),
-            'status': 'pending',
             'createdAt': timestamp.isoformat(),
             'updatedAt': timestamp.isoformat()
         }
