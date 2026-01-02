@@ -8,6 +8,8 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as amplify from 'aws-cdk-lib/aws-amplify';
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct } from 'constructs';
 
 export class MSMBackendStack extends cdk.Stack {
@@ -115,6 +117,84 @@ export class MSMBackendStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'DataEndpoint', {
       value: `${chatbotApi.url}data`,
       description: 'Data Handler API Endpoint',
+    });
+
+    // Get GitHub token from Secrets Manager
+    const githubSecret = secretsmanager.Secret.fromSecretNameV2(
+      this, 
+      'GitHubToken', 
+      'github-token'
+    );
+
+    // Amplify App for Frontend Deployment
+    const amplifyApp = new amplify.CfnApp(this, 'MedicalSpecialtyMatchmakerApp', {
+      name: 'medical-specialty-matchmaker',
+      description: 'Medical Specialty Matchmaker Frontend',
+      repository: 'https://github.com/ASUCICREPO/Medical-Specialty-Matchmaker',
+      accessToken: githubSecret.secretValue.unsafeUnwrap(),
+      platform: 'WEB_COMPUTE',
+      buildSpec: `version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - cd frontend
+        - npm ci
+    build:
+      commands:
+        - cd frontend
+        - npm run build
+  artifacts:
+    baseDirectory: frontend/.next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - frontend/node_modules/**/*
+      - frontend/.next/cache/**/*`,
+      environmentVariables: [
+        {
+          name: 'NEXT_PUBLIC_API_URL',
+          value: `${chatbotApi.url}chatbot`
+        },
+        {
+          name: 'NEXT_PUBLIC_CHATBOT_API_URL',
+          value: chatbotApi.url
+        },
+        {
+          name: 'NEXT_PUBLIC_CHATBOT_URL',
+          value: chatbotApi.url
+        },
+        {
+          name: 'NEXT_PUBLIC_DATA_URL',
+          value: `${chatbotApi.url}data`
+        }
+      ]
+    });
+
+    // Create main branch
+    const amplifyBranch = new amplify.CfnBranch(this, 'MainBranch', {
+      appId: amplifyApp.attrAppId,
+      branchName: 'main',
+      enableAutoBuild: true,
+      enablePerformanceMode: true,
+      framework: 'Next.js - SSR'
+    });
+
+    // Output Amplify App URL
+    new cdk.CfnOutput(this, 'AmplifyAppUrl', {
+      value: `https://${amplifyBranch.branchName}.${amplifyApp.attrDefaultDomain}`,
+      description: 'Amplify App URL',
+    });
+
+    new cdk.CfnOutput(this, 'AmplifyAppId', {
+      value: amplifyApp.attrAppId,
+      description: 'Amplify App ID',
+    });
+
+    new cdk.CfnOutput(this, 'AmplifyConsoleUrl', {
+      value: `https://console.aws.amazon.com/amplify/home?region=${this.region}#/${amplifyApp.attrAppId}`,
+      description: 'Amplify Console URL',
     });
   }
 }
