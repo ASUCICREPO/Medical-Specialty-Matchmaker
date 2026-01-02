@@ -3,13 +3,13 @@
 import { ProgressIndicator } from '../ProgressIndicator';
 import { BackButton } from '../BackButton';
 import { ClinicianData } from './ClinicianForm';
-import { PatientData } from './ChatInterface';
+import { ChatData } from './ChatInterface';
 
 interface SpecialtyResultsProps {
   onBack: () => void;
   onSubmit: () => void;
   clinicianData: ClinicianData;
-  patientData: PatientData;
+  patientData: ChatData;
 }
 
 interface Specialty {
@@ -21,7 +21,7 @@ interface Specialty {
 export function SpecialtyResults({ onBack, onSubmit, clinicianData, patientData }: SpecialtyResultsProps) {
   // Mock specialty matching based on symptoms
   const getSpecialties = (): Specialty[] => {
-    const symptoms = patientData.symptoms.toLowerCase();
+    const symptoms = patientData.extractedData?.symptoms?.toLowerCase() || '';
     
     if (symptoms.includes('respiratory') || symptoms.includes('breathing') || symptoms.includes('cough')) {
       return [
@@ -109,20 +109,20 @@ export function SpecialtyResults({ onBack, onSubmit, clinicianData, patientData 
             </div>
             <div>
               <span className="text-gray-600">Patient Age Group:</span>{' '}
-              <span className="text-wti-navy font-medium">{patientData.ageGroup}</span>
+              <span className="text-wti-navy font-medium">{patientData.extractedData?.ageGroup || 'Not specified'}</span>
             </div>
             <div>
               <span className="text-gray-600">Symptoms:</span>{' '}
-              <span className="text-wti-navy font-medium">{patientData.symptoms}</span>
+              <span className="text-wti-navy font-medium">{patientData.extractedData?.symptoms || 'Not specified'}</span>
             </div>
             <div>
               <span className="text-gray-600">Duration:</span>{' '}
-              <span className="text-wti-navy font-medium">{patientData.duration}</span>
+              <span className="text-wti-navy font-medium">{patientData.extractedData?.duration || 'Not specified'}</span>
             </div>
-            {patientData.additionalInfo && (
+            {patientData.extractedData?.additionalInfo && (
               <div>
                 <span className="text-gray-600">Additional Info:</span>{' '}
-                <span className="text-wti-navy font-medium">{patientData.additionalInfo}</span>
+                <span className="text-wti-navy font-medium">{patientData.extractedData.additionalInfo}</span>
               </div>
             )}
           </div>
