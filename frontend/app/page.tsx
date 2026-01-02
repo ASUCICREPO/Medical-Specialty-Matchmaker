@@ -57,7 +57,7 @@ export default function Home() {
     if (classification) {
       setFinalClassification(classification);
     } else if (chatData?.classificationResult) {
-      setFinalClassification(chatData.classificationResult);
+      setFinalClassification(chatData?.classificationResult);
     }
     setCurrentScreen('success');
   };
@@ -168,9 +168,9 @@ export default function Home() {
                   <li className="flex items-center gap-3">
                     <div className="w-2 h-2 bg-wti-teal rounded-full"></div>
                     <span className="text-wti-navy font-medium">
-                      {(finalClassification || chatData.classificationResult).specialty}
-                      {(finalClassification || chatData.classificationResult).subspecialty && 
-                        ` - ${(finalClassification || chatData.classificationResult).subspecialty}`
+                      {(finalClassification || chatData?.classificationResult)?.specialty}
+                      {(finalClassification || chatData?.classificationResult)?.subspecialty && 
+                        ` - ${(finalClassification || chatData?.classificationResult)?.subspecialty}`
                       }
                     </span>
                   </li>
