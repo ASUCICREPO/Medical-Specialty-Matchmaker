@@ -10,7 +10,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # Initialize Bedrock client - use the same region as the Lambda
-bedrock = boto3.client('bedrock-runtime', region_name=os.environ.get('AWS_REGION'))
+bedrock = boto3.client('bedrock-runtime', region_name=os.environ.get('BEDROCK_REGION'))
 
 # Medical specialties and subspecialties mapping
 MEDICAL_SPECIALTIES = {
@@ -500,6 +500,8 @@ QUESTIONING STRATEGY:
 - Focus on details that help distinguish between subspecialties
 - Gather information systematically and thoroughly
 
+WORD LIMIT: Keep "reasoning" field under 300 words maximum.
+
 Remember: Thorough information gathering over speed - ask comprehensive questions for confident subspecialty matching."""
 
     context = system_prompt + "\n\nConversation so far:\n"
@@ -526,7 +528,7 @@ def call_bedrock_for_chat(conversation_context: str) -> str:
                     "content": conversation_context
                 }
             ],
-            "temperature": 0.7
+            "temperature": 0.5
         }
         
         logger.info(f"Calling Bedrock for chat with context length: {len(conversation_context)}")

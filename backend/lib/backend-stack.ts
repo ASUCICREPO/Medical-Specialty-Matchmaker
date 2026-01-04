@@ -31,6 +31,7 @@ export class MSMBackendStack extends cdk.Stack {
       code: lambda.Code.fromAsset('lambda'),
       environment: {
         REQUESTS_TABLE: medicalRequestsTable.tableName,
+        BEDROCK_REGION: this.region
       },
       timeout: cdk.Duration.seconds(30),
       memorySize: 512,

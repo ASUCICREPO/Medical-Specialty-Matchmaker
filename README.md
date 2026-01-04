@@ -11,17 +11,7 @@ We provide sustainable medical expertise to resource-constrained hospitals and c
 - **Intelligent Case Classification**: AI-powered analysis of symptoms to identify appropriate medical specialties
 - **Guided Form Filling**: Step-by-step chatbot interface to collect necessary information
 - **Privacy-First Design**: No personally identifiable patient information is collected
-- **Multi-Specialty Matching**: Supports matching across various medical specialties including:
-  - Pediatrics
-  - Dermatology
-  - Infectious Disease
-  - Cardiology
-  - Neurology
-  - Gastroenterology
-  - Orthopedics
-  - Pulmonology
-  - Emergency Medicine
-  - General Medicine
+- **Multi-Specialty Matching**: Supports matching across various medical specialties
 
 ## Architecture
 
@@ -94,7 +84,7 @@ aws secretsmanager create-secret \
   --name "github-token" \
   --description "GitHub Personal Access Token for Amplify" \
   --secret-string "your-github-token-here" \
-  --region us-east-1 \
+  --region your-aws-profile-region \
   --profile your-aws-profile
 ```
 
@@ -108,8 +98,8 @@ aws secretsmanager create-secret \
 ```bash
 cd backend
 
-# Deploy all AWS resources (takes 3-5 minutes)
-npx cdk deploy --profile your-aws-profile
+# Deploy all AWS resources
+npx cdk deploy --profile your-aws-profile 
 ```
 
 This creates:
@@ -124,7 +114,7 @@ This creates:
 After deployment, update your CDK stack with your repository URL:
 
 1. Fork this repository to your GitHub account
-2. Update `backend/lib/backend-stack.ts` line ~122:
+2. Update `backend/lib/backend-stack.ts` line ~133:
    ```typescript
    repository: 'https://github.com/YOUR-USERNAME/Medical-Specialty-Matchmaker',
    ```
@@ -140,13 +130,23 @@ After deployment completes, you'll see outputs like:
 ✅  MSMBackendStack
 
 Outputs:
-MSMBackendStack.AmplifyAppUrl = https://main.d1xzejvebp9qxx.amplifyapp.com
-MSMBackendStack.ApiUrl = https://##########.execute-api.<REGION>.amazonaws.com/prod/
-MSMBackendStack.ChatbotEndpoint = https://##########.execute-api.<REGION>.amazonaws.com/prod/chatbot
-MSMBackendStack.DataEndpoint = https://##########.execute-api.<REGION>.amazonaws.com/prod/data
+MSMBackendStack.AmplifyAppId = <APP-ID>
+MSMBackendStack.AmplifyAppUrl = https://main.<APP-ID>.amplifyapp.com
+MSMBackendStack.AmplifyConsoleUrl = https://console.aws.amazon.com/amplify/home?region=<REGION>#/<APP-ID>
+MSMBackendStack.ApiUrl = https://<COPY-THIS-BASE-URL>/prod/
+MSMBackendStack.ChatbotAPIEndpointC82E045D = https://<BASE-URL>/prod/
+MSMBackendStack.ChatbotEndpoint = https://<BASE-URL>/prod/chatbot
+MSMBackendStack.DataEndpoint = https://<BASE-URL>/prod/data
 ```
 
-Your application is now live at the `AmplifyAppUrl`!
+### Step 7: Environment Variables
+- Create a `.env` file in the frontend folder and follow `.example.env` by pasting the copied base url into the environment variables
+
+### Step 8: Run Deployment
+
+```bash
+aws amplify start-job --app-id your-app-id --branch-name main --job-type RELEASE --region your-region --profile your-aws-profile
+```
 
 ## 🔧 Local Development
 
@@ -163,23 +163,20 @@ cd backend
 npm run test
 ```
 
-### Environment Variables
-
-The system automatically manages environment variables:
-- API endpoints are injected during Amplify build
-- No manual `.env` configuration needed for production
-
 ## 🛠️ Configuration
 
 ### AWS Regions
-- Default deployment region: `us-east-1`
-- To change region, update `backend/bin/backend.ts`
+- **Recommended region**: `us-east-1` (has Claude 3.x models without marketplace requirements)
+- **Alternative regions**: `us-west-2`, `us-east-2` 
+- **Note**: `us-west-1` only has Claude 4.x models which require AWS Marketplace subscriptions
+- To change region, update `backend/bin/backend.ts` and redeploy
 
 ### Bedrock Models
-The system uses Claude 3.5 Haiku by default. To change models, update `backend/lambda/chatbot_orchestrator.py`:
+The system uses Claude 3 Haiku by default. To change models, update `backend/lambda/chatbot_orchestrator.py`:
 ```python
-model_id = "anthropic.claude-3-5-haiku-20241022-v1:0"
+model_id = "anthropic.claude-3-haiku-20241022-v1:0"
 ```
+- Ensure the model you are using is available on the current region
 
 ### Response Length
 Chatbot response limits are configured in `chatbot_orchestrator.py`:
@@ -194,7 +191,7 @@ Chatbot response limits are configured in `chatbot_orchestrator.py`:
 **CDK Bootstrap Error**
 ```bash
 # Run bootstrap with explicit region
-npx cdk bootstrap aws://ACCOUNT-ID/us-east-1 --profile your-profile
+npx cdk bootstrap aws://ACCOUNT-ID/ACCOUNT-REGION --profile your-profile
 ```
 
 **Amplify Build Fails**
