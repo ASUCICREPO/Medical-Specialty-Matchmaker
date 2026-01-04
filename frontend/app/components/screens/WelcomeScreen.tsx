@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+
 interface WelcomeScreenProps {
   onStartRequest: () => void;
   hasExistingClinicianData?: boolean;
@@ -18,26 +20,14 @@ export function WelcomeScreen({
       <div className="max-w-[600px] w-full">
         {/* Logo Section */}
         <div className="flex justify-center mb-12">
-          <div className="flex flex-col items-center gap-4">
-            <div className="flex items-center justify-center w-24 h-24 bg-wti-red rounded-full shadow-lg">
-              <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path 
-                  d="M24 4L24 44M4 24L44 24" 
-                  stroke="white" 
-                  strokeWidth="5" 
-                  strokeLinecap="round"
-                />
-              </svg>
-            </div>
-            <div className="flex flex-col items-center">
-              <span className="tracking-widest uppercase text-wti-navy" style={{ letterSpacing: '0.15em' }}>
-                World Telehealth
-              </span>
-              <span className="tracking-widest uppercase text-wti-navy" style={{ letterSpacing: '0.15em' }}>
-                Initiative
-              </span>
-            </div>
-          </div>
+          <Image
+            src="/WTI-logo-stacked-800px.png"
+            alt="World Telehealth Initiative"
+            width={200}
+            height={200}
+            className="h-42 w-auto"
+            priority
+          />
         </div>
 
         {/* Welcome Back Message for Returning Users */}

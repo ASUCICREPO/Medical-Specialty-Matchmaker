@@ -144,8 +144,6 @@ applications:
         build:
           commands:
             - echo "NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL" > .env.production
-            - echo "NEXT_PUBLIC_CHATBOT_API_URL=$NEXT_PUBLIC_CHATBOT_API_URL" >> .env.production
-            - echo "NEXT_PUBLIC_CHATBOT_URL=$NEXT_PUBLIC_CHATBOT_URL" >> .env.production
             - echo "NEXT_PUBLIC_DATA_URL=$NEXT_PUBLIC_DATA_URL" >> .env.production
             - npm run build
       artifacts:
@@ -164,14 +162,6 @@ applications:
         {
           name: 'NEXT_PUBLIC_API_URL',
           value: `${chatbotApi.url}chatbot`
-        },
-        {
-          name: 'NEXT_PUBLIC_CHATBOT_API_URL',
-          value: chatbotApi.url
-        },
-        {
-          name: 'NEXT_PUBLIC_CHATBOT_URL',
-          value: chatbotApi.url
         },
         {
           name: 'NEXT_PUBLIC_DATA_URL',

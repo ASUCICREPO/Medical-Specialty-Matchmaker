@@ -27,77 +27,229 @@ We provide sustainable medical expertise to resource-constrained hospitals and c
 
 ### Frontend (Next.js)
 - **Framework**: Next.js 16 with React 19
-- **Styling**: Tailwind CSS
+- **Styling**: Tailwind CSS with WTI brand colors
 - **Components**: Modular chatbot interface with form validation
-- **API Routes**: Built-in API endpoints for chatbot logic
+- **Hosting**: AWS Amplify with automatic deployments
 
 ### Backend (AWS CDK)
 - **Infrastructure**: AWS CDK for cloud resources
-- **AI/ML**: AWS Bedrock with Claude 3 Haiku for intelligent conversations and classification
+- **AI/ML**: AWS Bedrock with Claude 3.5 Haiku for intelligent conversations and classification
 - **Database**: DynamoDB for storing medical requests
 - **API**: AWS API Gateway with Lambda functions
-- **Classification**: AI-powered symptom analysis and specialty matching with automatic fallback
+- **Classification**: AI-powered symptom analysis and specialty matching with 98% confidence threshold
 
-## Getting Started
+## 🚀 Deployment Guide
 
 ### Prerequisites
-- Node.js 18+ 
-- npm or yarn
-- AWS CLI configured (for backend deployment)
 
-### Frontend Development
+Before deploying, ensure you have:
 
-1. Navigate to the frontend directory:
+- **Node.js 18+** installed
+- **AWS CLI** installed and configured
+- **AWS CDK** installed globally: `npm install -g aws-cdk`
+- **Git** for cloning the repository
+- **AWS Account** with appropriate permissions
+
+### Step 1: Clone and Setup
+
 ```bash
-cd frontend
-```
+# Clone the repository
+git clone https://github.com/ASUCICREPO/Medical-Specialty-Matchmaker.git
+cd Medical-Specialty-Matchmaker
 
-2. Install dependencies:
-```bash
+# Install backend dependencies
+cd backend
 npm install
+
+# Install frontend dependencies  
+cd ../frontend
+npm install
+cd ..
 ```
 
-3. Start the development server:
+### Step 2: AWS Configuration
+
+#### Configure AWS CLI
 ```bash
-npm run dev
+# Configure your AWS credentials
+aws configure
+
+# Or use AWS SSO (recommended)
+aws configure sso
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
-
-### Backend Deployment
-
-1. Navigate to the backend directory:
+#### Bootstrap CDK (First-time only)
 ```bash
 cd backend
+npx cdk bootstrap --profile your-aws-profile
 ```
 
-2. Install dependencies:
+### Step 3: Set Up GitHub Integration (Optional)
+
+If you want Amplify to auto-deploy from your GitHub repository:
+
 ```bash
-npm install
+# Store your GitHub Personal Access Token in AWS Secrets Manager
+aws secretsmanager create-secret \
+  --name "github-token" \
+  --description "GitHub Personal Access Token for Amplify" \
+  --secret-string "your-github-token-here" \
+  --region us-east-1 \
+  --profile your-aws-profile
 ```
 
-3. Build the project:
+**To create a GitHub token:**
+1. Go to GitHub Settings → Developer settings → Personal access tokens
+2. Generate new token with `repo` permissions
+3. Copy the token and use it in the command above
+
+### Step 4: Deploy Backend Infrastructure
+
 ```bash
-npm run build
+cd backend
+
+# Deploy all AWS resources (takes 3-5 minutes)
+npx cdk deploy --profile your-aws-profile
 ```
 
-4. Deploy to AWS:
+This creates:
+- ✅ DynamoDB table for medical requests
+- ✅ Lambda functions for chatbot logic
+- ✅ API Gateway endpoints
+- ✅ IAM roles and policies
+- ✅ Amplify app for frontend hosting
+
+### Step 5: Update Repository Settings (If using GitHub integration)
+
+After deployment, update your CDK stack with your repository URL:
+
+1. Fork this repository to your GitHub account
+2. Update `backend/lib/backend-stack.ts` line ~122:
+   ```typescript
+   repository: 'https://github.com/YOUR-USERNAME/Medical-Specialty-Matchmaker',
+   ```
+3. Redeploy:
+   ```bash
+   npx cdk deploy --profile your-aws-profile
+   ```
+
+### Step 6: Verify Deployment
+
+After deployment completes, you'll see outputs like:
+```
+✅  MSMBackendStack
+
+Outputs:
+MSMBackendStack.AmplifyAppUrl = https://main.d1xzejvebp9qxx.amplifyapp.com
+MSMBackendStack.ApiUrl = https://##########.execute-api.<REGION>.amazonaws.com/prod/
+MSMBackendStack.ChatbotEndpoint = https://##########.execute-api.<REGION>.amazonaws.com/prod/chatbot
+MSMBackendStack.DataEndpoint = https://##########.execute-api.<REGION>.amazonaws.com/prod/data
+```
+
+Your application is now live at the `AmplifyAppUrl`!
+
+## 🔧 Local Development
+
+### Frontend Development
 ```bash
-npm run cdk deploy
+cd frontend
+npm run dev
+# Open http://localhost:3000
 ```
 
-## Usage
+### Backend Testing
+```bash
+cd backend
+npm run test
+```
 
-1. **Start Conversation**: The chatbot greets users and explains the process
-2. **Describe Case**: Users provide initial symptoms and case description
-3. **Fill Form**: Complete structured form with:
-   - Doctor name and contact information
-   - Patient age (no identifying information)
-   - Detailed symptoms description
-   - Urgency level
-   - Additional context
-4. **AI Classification**: System analyzes case and recommends appropriate specialties
-5. **Expert Matching**: Request is routed to available volunteer specialists
+### Environment Variables
+
+The system automatically manages environment variables:
+- API endpoints are injected during Amplify build
+- No manual `.env` configuration needed for production
+
+## 🛠️ Configuration
+
+### AWS Regions
+- Default deployment region: `us-east-1`
+- To change region, update `backend/bin/backend.ts`
+
+### Bedrock Models
+The system uses Claude 3.5 Haiku by default. To change models, update `backend/lambda/chatbot_orchestrator.py`:
+```python
+model_id = "anthropic.claude-3-5-haiku-20241022-v1:0"
+```
+
+### Response Length
+Chatbot response limits are configured in `chatbot_orchestrator.py`:
+- Conversational: 1000 tokens
+- Classification: 800 tokens  
+- Data extraction: 1200 tokens
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+**CDK Bootstrap Error**
+```bash
+# Run bootstrap with explicit region
+npx cdk bootstrap aws://ACCOUNT-ID/us-east-1 --profile your-profile
+```
+
+**Amplify Build Fails**
+- Check that your repository is public or GitHub token has correct permissions
+- Verify the repository URL in `backend-stack.ts`
+
+**Bedrock Access Denied**
+- Ensure your AWS account has Bedrock access enabled
+- Check that the deployment region supports Claude models
+
+**API Gateway 403 Errors**
+- Verify CORS configuration in API Gateway
+- Check Lambda function permissions
+
+### Logs and Monitoring
+
+- **Lambda Logs**: CloudWatch → Log Groups → `/aws/lambda/MSMBackendStack-*`
+- **Amplify Builds**: AWS Console → Amplify → Your App → Build History
+- **API Gateway**: AWS Console → API Gateway → Medical Specialty Matchmaker API
+
+## 🔄 Updates and Maintenance
+
+### Updating the Application
+```bash
+# Pull latest changes
+git pull origin main
+
+# Deploy backend updates
+cd backend
+npx cdk deploy --profile your-profile
+
+# Frontend updates deploy automatically via Amplify
+```
+
+### Monitoring Costs
+- Lambda: Pay per request (very low cost)
+- DynamoDB: Pay per read/write (minimal for typical usage)
+- Bedrock: Pay per token (~$0.25 per 1M tokens)
+- Amplify: Free tier covers most small deployments
+
+## 🔒 Security Considerations
+
+- All API endpoints use HTTPS
+- No PII is stored in the database
+- AWS IAM follows least-privilege principles
+- Bedrock calls are region-restricted
+- GitHub tokens are stored in AWS Secrets Manager
+
+## 📞 Support
+
+For deployment issues:
+1. Check the troubleshooting section above
+2. Review AWS CloudWatch logs
+3. Verify all prerequisites are met
+4. Ensure AWS permissions are correctly configured
 
 ## Privacy & Security
 
@@ -105,14 +257,6 @@ npm run cdk deploy
 - All data is anonymized and aggregated
 - HIPAA-compliant design principles
 - Secure data transmission and storage
-
-## Future Enhancements
-
-- **Multilingual Support**: Spanish, French, and Ukrainian language support
-- **Advanced AI**: Integration with medical knowledge bases and ML models
-- **Real-time Matching**: Live availability tracking for volunteer specialists
-- **Telemedicine Integration**: Direct video consultation capabilities
-- **Mobile App**: Native mobile applications for field use
 
 ## Contributing
 

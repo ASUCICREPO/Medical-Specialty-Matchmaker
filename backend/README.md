@@ -2,230 +2,386 @@
 
 AWS CDK infrastructure for the Medical Specialty Matchmaker chatbot application.
 
-## Deployed Infrastructure ✅
+## 🏗️ Infrastructure Overview
 
-**Status**: Successfully deployed to AWS
-**Region**: us-west-2
-**API Endpoint**: `https://muw0420zn8.execute-api.us-west-2.amazonaws.com/prod/`
+This backend deploys a complete AWS infrastructure stack using CDK, including:
+- **AI-Powered Chatbot**: AWS Bedrock with Claude 3.5 Haiku
+- **API Gateway**: RESTful endpoints with CORS
+- **Lambda Functions**: Python-based serverless compute
+- **DynamoDB**: NoSQL database for medical requests
+- **Amplify**: Frontend hosting with GitHub integration
 
-### Resources Created
+## 📋 Prerequisites
 
-1. **DynamoDB Table**
-   - `medical-requests` - Stores medical consultation requests
+- **AWS CLI** configured with appropriate permissions
+- **Node.js 18+** and npm
+- **AWS CDK** installed globally: `npm install -g aws-cdk`
+- **Python 3.11** (for Lambda runtime)
 
-2. **Lambda Function**
-   - `ChatbotFunction` - Handles medical case classification and request processing
-   - Runtime: Node.js 18.x
-   - Memory: 128 MB (default)
+### Required AWS Permissions
 
-3. **API Gateway**
-   - REST API with CORS enabled
-   - POST endpoint: `/chatbot`
-   - Supports two actions: `classify` and `submit`
+Your AWS user/role needs permissions for:
+- CloudFormation (full access)
+- IAM (create/manage roles and policies)
+- Lambda (create/manage functions)
+- API Gateway (create/manage APIs)
+- DynamoDB (create/manage tables)
+- Bedrock (invoke models)
+- Amplify (create/manage apps)
+- Secrets Manager (create/read secrets)
 
-4. **IAM Roles & Policies**
-   - Lambda execution role with DynamoDB read/write permissions
-   - API Gateway invoke permissions
+## 🚀 Quick Deployment
 
-## API Usage
-
-### Classify Medical Request
 ```bash
-curl -X POST https://muw0420zn8.execute-api.us-west-2.amazonaws.com/prod/chatbot \
+# 1. Install dependencies
+npm install
+
+# 2. Bootstrap CDK (first time only)
+npx cdk bootstrap --profile your-aws-profile
+
+# 3. Deploy everything
+npx cdk deploy --profile your-aws-profile
+```
+
+## 🔧 Detailed Setup
+
+### Step 1: Environment Setup
+```bash
+# Clone and navigate
+git clone <repository-url>
+cd Medical-Specialty-Matchmaker/backend
+
+# Install dependencies
+npm install
+
+# Verify CDK installation
+npx cdk --version
+```
+
+### Step 2: AWS Configuration
+```bash
+# Configure AWS CLI (if not done)
+aws configure --profile your-profile
+
+# Test AWS access
+aws sts get-caller-identity --profile your-profile
+```
+
+### Step 3: CDK Bootstrap
+```bash
+# Bootstrap CDK in your account/region
+npx cdk bootstrap aws://ACCOUNT-ID/REGION --profile your-profile
+
+# Example:
+npx cdk bootstrap aws://123456789012/us-east-1 --profile my-profile
+```
+
+### Step 4: GitHub Integration (Optional)
+```bash
+# Store GitHub token for Amplify auto-deployment
+aws secretsmanager create-secret \
+  --name "github-token" \
+  --description "GitHub Personal Access Token for Amplify" \
+  --secret-string "ghp_your_token_here" \
+  --region us-east-1 \
+  --profile your-profile
+```
+
+### Step 5: Deploy Infrastructure
+```bash
+# Deploy all resources
+npx cdk deploy --profile your-profile
+
+# Deploy with approval prompts disabled
+npx cdk deploy --require-approval never --profile your-profile
+```
+
+## 📊 Deployed Resources
+
+### Core Infrastructure
+- **DynamoDB Table**: `medical-requests` (pay-per-request billing)
+- **Lambda Functions**:
+  - `ChatbotOrchestratorFn`: Main chatbot logic (Python 3.11, 512MB)
+  - `DataHandlerFn`: Database operations (Python 3.11, 256MB)
+- **API Gateway**: REST API with `/chatbot` and `/data` endpoints
+- **IAM Roles**: Least-privilege access for Lambda functions
+
+### AI/ML Components
+- **AWS Bedrock**: Claude 3.5 Haiku model access
+- **Response Limits**:
+  - Conversational: 1000 tokens
+  - Classification: 800 tokens
+  - Data extraction: 1200 tokens
+
+### Frontend Hosting
+- **Amplify App**: Automatic builds from GitHub
+- **Environment Variables**: Auto-injected API endpoints
+- **Build Configuration**: Optimized for Next.js monorepo
+
+## 🔌 API Endpoints
+
+After deployment, you'll receive endpoints like:
+```
+ChatbotEndpoint: https://abc123.execute-api.us-east-1.amazonaws.com/prod/chatbot
+DataEndpoint: https://abc123.execute-api.us-east-1.amazonaws.com/prod/data
+AmplifyAppUrl: https://main.d1xzejvebp9qxx.amplifyapp.com
+```
+
+### Chatbot API Usage
+```bash
+# Send message to chatbot
+curl -X POST https://your-api-url/chatbot \
   -H "Content-Type: application/json" \
   -d '{
-    "action": "classify",
-    "data": {
-      "symptoms": "child with high fever and rash",
-      "patientAge": 8,
-      "urgency": "high"
-    }
+    "message": "I have a child with fever and rash",
+    "conversationId": "unique-id",
+    "ageGroup": "Child"
   }'
 ```
 
-**Response:**
-```json
-{
-  "recommendedSpecialties": ["Pediatrics", "Infectious Disease", "Dermatology"],
-  "confidence": 0.8
-}
-```
-
-### Submit Medical Request
+### Data Submission
 ```bash
-curl -X POST https://muw0420zn8.execute-api.us-west-2.amazonaws.com/prod/chatbot \
+# Submit medical request
+curl -X POST https://your-api-url/data \
   -H "Content-Type: application/json" \
   -d '{
-    "action": "submit",
-    "data": {
-      "doctorName": "Dr. Smith",
-      "location": "City Hospital, Kenya",
-      "email": "doctor@hospital.com",
-      "patientAge": "8",
-      "symptoms": "fever and rash",
-      "urgency": "high",
-      "additionalInfo": "Symptoms started 3 days ago",
-      "recommendedSpecialties": ["Pediatrics", "Infectious Disease"]
-    }
+    "doctorName": "Dr. Smith",
+    "hospitalName": "City Hospital",
+    "email": "doctor@hospital.com",
+    "ageGroup": "Child",
+    "symptoms": "fever and rash for 3 days",
+    "specialty": "Pediatrician",
+    "subspecialty": "Pediatric Infectious Diseases"
   }'
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "id": "1234567890"
-}
-```
+## 🛠️ Development Commands
 
-## Development Commands
-
-### Build
+### Build and Test
 ```bash
+# Compile TypeScript
 npm run build
-```
 
-### Watch Mode
-```bash
+# Watch for changes
 npm run watch
-```
 
-### Run Tests
-```bash
+# Run tests
 npm run test
+
+# Lint code
+npm run lint
 ```
 
-### Deploy to AWS
+### CDK Operations
 ```bash
-npx cdk deploy --profile wti
-```
+# View planned changes
+npx cdk diff --profile your-profile
 
-### View Differences
-```bash
-npx cdk diff --profile wti
-```
-
-### Synthesize CloudFormation
-```bash
+# Generate CloudFormation template
 npx cdk synth
+
+# List all stacks
+npx cdk list
+
+# Destroy infrastructure (careful!)
+npx cdk destroy --profile your-profile
 ```
 
-### Destroy Stack
+## 📈 Monitoring and Logs
+
+### CloudWatch Logs
 ```bash
-npx cdk destroy --profile wti
+# View Lambda logs
+aws logs tail /aws/lambda/MSMBackendStack-ChatbotOrchestratorFn --follow --profile your-profile
+
+# View API Gateway logs
+aws logs tail API-Gateway-Execution-Logs --follow --profile your-profile
 ```
 
-## Monitoring
-
-### View Lambda Logs
+### DynamoDB Operations
 ```bash
-aws logs tail /aws/lambda/BackendStack-ChatbotFunction --follow --profile wti
-```
-
-### Query DynamoDB
-```bash
-# Scan all requests
-aws dynamodb scan --table-name medical-requests --profile wti
+# Scan all medical requests
+aws dynamodb scan --table-name medical-requests --profile your-profile
 
 # Get specific request
 aws dynamodb get-item \
   --table-name medical-requests \
-  --key '{"id": {"S": "REQUEST_ID"}}' \
-  --profile wti
+  --key '{"id": {"S": "request-id"}}' \
+  --profile your-profile
 ```
 
-## Architecture
+### Amplify Build Status
+```bash
+# Check build status
+aws amplify list-apps --profile your-profile
+
+# Get build details
+aws amplify get-job --app-id your-app-id --branch-name main --job-id job-id --profile your-profile
+```
+
+## 🏗️ Architecture Diagram
 
 ```
-┌─────────────┐
-│   Client    │
-│  (Frontend) │
-└──────┬──────┘
-       │
-       │ HTTPS
-       ▼
 ┌─────────────────┐
-│  API Gateway    │
-│  /chatbot POST  │
+│   GitHub Repo   │
+│   (Source)      │
 └────────┬────────┘
          │
-         │ Invoke
+         │ Auto-deploy
          ▼
-┌──────────────────┐
-│ Lambda Function  │
-│ - Classify       │
-│ - Submit         │
-└────────┬─────────┘
-         │
-         │ Read/Write
-         ▼
-┌──────────────────┐
-│    DynamoDB      │
-│ - Requests       │
-└──────────────────┘
+┌─────────────────┐    ┌──────────────────┐
+│  AWS Amplify    │    │   API Gateway    │
+│  (Frontend)     │◄──►│  /chatbot POST   │
+└─────────────────┘    │  /data POST      │
+                       └────────┬─────────┘
+                                │
+                                │ Invoke
+                                ▼
+                       ┌──────────────────┐
+                       │ Lambda Functions │
+                       │ - Chatbot Logic  │
+                       │ - Data Handler   │
+                       └────────┬─────────┘
+                                │
+                ┌───────────────┼───────────────┐
+                │               │               │
+                ▼               ▼               ▼
+        ┌──────────────┐ ┌─────────────┐ ┌──────────────┐
+        │  DynamoDB    │ │ AWS Bedrock │ │ Secrets Mgr  │
+        │ (Database)   │ │ (Claude AI) │ │ (GitHub Key) │
+        └──────────────┘ └─────────────┘ └──────────────┘
 ```
 
-## Medical Specialty Classification
+## 💰 Cost Estimation
 
-The Lambda function classifies cases based on:
+### Monthly Costs (10,000 requests)
+- **Lambda**: ~$0.20 (1M free requests/month)
+- **DynamoDB**: ~$1.25 (pay-per-request)
+- **API Gateway**: ~$0.035 (1M free requests/month)
+- **Bedrock**: ~$2.50 (Claude 3.5 Haiku pricing)
+- **Amplify**: Free (under 5GB storage)
 
-- **Age**: Pediatrics for patients < 18 years
-- **Symptoms**: Keyword matching for specialty identification
-  - Dermatology: rash, skin, lesion, eczema
-  - Infectious Disease: fever, infection, sepsis
-  - Cardiology: heart, chest pain, cardiac
-  - Neurology: seizure, headache, stroke
-  - Gastroenterology: abdominal, stomach, diarrhea
-  - Orthopedics: bone, fracture, joint
-  - Pulmonology: breathing, lung, cough
-- **Urgency**: Emergency Medicine for high-urgency cases
+**Total estimated cost**: ~$4/month for 10,000 requests
 
-## Cost Estimation
+### Cost Optimization Tips
+- Use DynamoDB on-demand pricing for variable workloads
+- Enable Lambda provisioned concurrency only if needed
+- Monitor Bedrock token usage
+- Use CloudWatch to track actual usage
 
-With pay-per-request pricing:
-- **DynamoDB**: $1.25 per million write requests, $0.25 per million read requests
-- **Lambda**: Free tier: 1M requests/month, then $0.20 per 1M requests
-- **API Gateway**: Free tier: 1M requests/month, then $3.50 per million
+## 🔒 Security Features
 
-**Estimated monthly cost for 10,000 requests**: < $1
+### Built-in Security
+- **HTTPS Only**: All API endpoints use TLS encryption
+- **IAM Roles**: Least-privilege access for all resources
+- **VPC**: Lambda functions can be deployed in VPC if needed
+- **Secrets Management**: GitHub tokens stored in AWS Secrets Manager
 
-## Security
+### Production Security Checklist
+- [ ] Restrict CORS to specific domains
+- [ ] Add API authentication (Cognito/API Keys)
+- [ ] Enable DynamoDB encryption at rest
+- [ ] Add AWS WAF for DDoS protection
+- [ ] Implement request throttling
+- [ ] Enable CloudTrail for audit logging
+- [ ] Set up CloudWatch alarms
 
-- CORS enabled for all origins (development mode)
-- IAM roles follow least privilege principle
-- No PII stored in database design
-- HTTPS encryption in transit
+## 🐛 Troubleshooting
 
-### Production Security Recommendations
-1. Restrict CORS to specific domains
-2. Add API authentication (API keys or Cognito)
-3. Enable DynamoDB encryption at rest
-4. Add AWS WAF for DDoS protection
-5. Implement request throttling
+### Common Deployment Issues
 
-## Troubleshooting
+**CDK Bootstrap Error**
+```bash
+# Solution: Bootstrap with explicit account/region
+npx cdk bootstrap aws://123456789012/us-east-1 --profile your-profile
+```
 
-### Deployment Issues
-- Ensure AWS credentials are configured: `aws configure --profile wti`
-- Check CDK version: `npx cdk --version`
-- Bootstrap CDK if first deployment: `npx cdk bootstrap --profile wti`
+**Bedrock Access Denied**
+```bash
+# Solution: Enable Bedrock in your AWS account
+aws bedrock list-foundation-models --region us-east-1 --profile your-profile
+```
 
-### Lambda Errors
-- Check CloudWatch logs for detailed error messages
-- Verify IAM permissions for DynamoDB access
-- Test Lambda function directly in AWS Console
+**Amplify Build Fails**
+- Check GitHub token permissions
+- Verify repository URL in `backend-stack.ts`
+- Ensure repository is accessible
 
-### API Gateway Issues
-- Verify CORS configuration
-- Check API Gateway logs in CloudWatch
-- Test endpoint with curl or Postman
+**Lambda Timeout**
+- Check CloudWatch logs for specific errors
+- Increase timeout in CDK stack if needed
+- Verify Bedrock model availability
 
-## Future Enhancements
+### Debug Commands
+```bash
+# Check CDK context
+npx cdk context
 
-- [ ] Integrate with AWS Bedrock for advanced AI classification
-- [ ] Add SNS notifications for specialist matching
-- [ ] Implement SQS queue for async processing
-- [ ] Add CloudWatch alarms for monitoring
-- [ ] Create separate dev/staging/prod environments
-- [ ] Add API authentication with Cognito
-- [ ] Implement rate limiting and throttling
+# Validate CloudFormation template
+npx cdk synth | aws cloudformation validate-template --template-body file:///dev/stdin
+
+# Test Lambda locally (if using SAM)
+sam local invoke ChatbotOrchestratorFn
+```
+
+## 🔄 Updates and Maintenance
+
+### Updating the Stack
+```bash
+# Pull latest changes
+git pull origin main
+
+# Deploy updates
+npx cdk deploy --profile your-profile
+```
+
+### Rollback Strategy
+```bash
+# View deployment history
+aws cloudformation describe-stack-events --stack-name MSMBackendStack --profile your-profile
+
+# Rollback to previous version (if needed)
+aws cloudformation cancel-update-stack --stack-name MSMBackendStack --profile your-profile
+```
+
+### Backup Strategy
+- DynamoDB: Enable point-in-time recovery
+- Lambda: Code is version-controlled in Git
+- Infrastructure: CDK code serves as infrastructure backup
+
+## 🚀 Advanced Configuration
+
+### Multi-Environment Setup
+```bash
+# Deploy to different environments
+npx cdk deploy --context environment=dev --profile dev-profile
+npx cdk deploy --context environment=prod --profile prod-profile
+```
+
+### Custom Domain Setup
+```typescript
+// Add to backend-stack.ts
+const certificate = Certificate.fromCertificateArn(this, 'Certificate', 'arn:aws:acm:...');
+const domainName = api.addDomainName('CustomDomain', {
+  domainName: 'api.yourdomain.com',
+  certificate: certificate,
+});
+```
+
+### VPC Deployment
+```typescript
+// Add VPC configuration to Lambda functions
+const vpc = Vpc.fromLookup(this, 'VPC', { isDefault: true });
+const lambdaFunction = new Function(this, 'Function', {
+  vpc: vpc,
+  // ... other config
+});
+```
+
+## 📚 Additional Resources
+
+- [AWS CDK Documentation](https://docs.aws.amazon.com/cdk/)
+- [AWS Bedrock User Guide](https://docs.aws.amazon.com/bedrock/)
+- [DynamoDB Developer Guide](https://docs.aws.amazon.com/dynamodb/)
+- [API Gateway Developer Guide](https://docs.aws.amazon.com/apigateway/)
+- [AWS Amplify Documentation](https://docs.aws.amazon.com/amplify/)

@@ -41,6 +41,7 @@ export function ChatInterface({ onBack, onNext }: ChatInterfaceProps) {
   const [ageGroupSelected, setAgeGroupSelected] = useState(false);
   const [showAgeButtons, setShowAgeButtons] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -227,6 +228,11 @@ export function ChatInterface({ onBack, onNext }: ChatInterfaceProps) {
     
     handleUserMessage(inputValue.trim());
     setInputValue('');
+    
+    // Reset textarea height to single line
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '48px';
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -301,9 +307,9 @@ export function ChatInterface({ onBack, onNext }: ChatInterfaceProps) {
 
           {/* Input */}
           <div className="p-6 border-t border-gray-200">
-            <div className="flex gap-2">
-              <input
-                type="text"
+            <div className="flex gap-2 items-end">
+              <textarea
+                ref={textareaRef}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
@@ -312,10 +318,21 @@ export function ChatInterface({ onBack, onNext }: ChatInterfaceProps) {
                     ? "Please select age group first..." 
                     : isLoading 
                     ? "Processing..." 
-                    : "Type your response..."
+                    : "Type your response... (Shift+Enter for new line)"
                 }
-                className="flex-1 px-4 py-3 rounded-lg bg-[#f3f3f5] border-2 border-transparent focus:border-wti-teal outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 placeholder-gray-600"
+                className="flex-1 px-4 py-3 rounded-lg bg-[#f3f3f5] border-2 border-transparent focus:border-wti-teal outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 placeholder-gray-600 resize-none min-h-[48px] max-h-[120px] overflow-y-auto auto-resize-textarea"
                 disabled={isLoading || !ageGroupSelected}
+                rows={1}
+                style={{
+                  height: 'auto',
+                  minHeight: '48px',
+                  maxHeight: '120px'
+                }}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = 'auto';
+                  target.style.height = Math.min(target.scrollHeight, 120) + 'px';
+                }}
               />
               <button
                 onClick={handleSendMessage}

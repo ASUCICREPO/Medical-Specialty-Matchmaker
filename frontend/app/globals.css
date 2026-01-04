@@ -48,6 +48,12 @@ input:focus, textarea:focus, select:focus {
   color: #111827 !important; /* Even darker on focus */
 }
 
+/* Auto-resizing textarea */
+.auto-resize-textarea {
+  transition: height 0.1s ease-out;
+  line-height: 1.5;
+}
+
 /* Disabled states */
 input:disabled, textarea:disabled, select:disabled {
   color: #9ca3af !important;

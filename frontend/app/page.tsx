@@ -229,7 +229,7 @@ export default function Home() {
               <p className="text-sm text-gray-500 mt-6">
                 Need immediate assistance?{' '}
                 <a 
-                  href="mailto:support@worldtelehealth.org" 
+                  href="mailto:inquiry@worldtelehealthinitiative.org" 
                   className="text-wti-teal hover:text-wti-dark-teal transition-colors"
                 >
                   Contact Support

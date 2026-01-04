@@ -406,7 +406,7 @@ Respond ONLY with a JSON object:
 
         payload = {
             "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": 400,
+            "max_tokens": 1000,
             "messages": [
                 {
                     "role": "user",
@@ -519,7 +519,7 @@ def call_bedrock_for_chat(conversation_context: str) -> str:
     try:
         payload = {
             "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": 300,
+            "max_tokens": 800,
             "messages": [
                 {
                     "role": "user",
@@ -591,7 +591,7 @@ Respond ONLY with a JSON object in this exact format:
 
         payload = {
             "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": 500,
+            "max_tokens": 1200,
             "messages": [
                 {
                     "role": "user",
