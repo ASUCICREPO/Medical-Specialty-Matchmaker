@@ -292,39 +292,39 @@ def handle_chat_conversation(data: Dict) -> Dict:
         # Build conversation context for Bedrock
         conversation_context = build_conversation_context(conversation_history, message)
         
-        # Call Bedrock for intelligent response AND data extraction
+        # Call Bedrock for intelligent response
         chat_response = call_bedrock_for_chat(conversation_context)
         
-        # Extract structured data from the entire conversation using AI
-        extracted_data = extract_structured_data_from_conversation(conversation_history + [{'sender': 'user', 'text': message}])
+        # Single call to extract data AND classify if ready
+        extraction_and_classification = extract_and_classify_from_conversation(
+            conversation_history + [{'sender': 'user', 'text': message}]
+        )
         
-        # Let AI determine if we have enough information to classify with 98% confidence
-        can_classify = extracted_data.get('canClassify', False) and extracted_data.get('confidence', 0) >= 0.98
+        # Determine if we can classify
+        can_classify = extraction_and_classification.get('canClassify', False) and extraction_and_classification.get('confidence', 0) >= 0.70
         
         result = {
             'response': chat_response,
             'source': 'bedrock',
             'canClassify': can_classify,
-            'extractedData': extracted_data
+            'extractedData': {
+                'ageGroup': extraction_and_classification.get('ageGroup'),
+                'symptoms': extraction_and_classification.get('symptoms'),
+                'urgency': extraction_and_classification.get('urgency'),
+                'confidence': extraction_and_classification.get('confidence', 0)
+            }
         }
         
-        # If AI says we can classify with 98% confidence, use the focused classification method
-        if can_classify:
-            # Use the same accurate classification method as re-evaluation
-            classification = classify_with_bedrock(
-                extracted_data.get('symptoms', ''),
-                extracted_data.get('ageGroup', 'Adult'),  # Use age group instead of patient age
-                extracted_data.get('urgency', 'medium')
-            )
-            result['classification'] = classification
+        # If we can classify, include the classification
+        if can_classify and extraction_and_classification.get('classification'):
+            result['classification'] = extraction_and_classification['classification']
         else:
-            # If confidence is low, provide guidance on what additional information is needed
-            confidence = extracted_data.get('confidence', 0)
-            if confidence > 0 and confidence < 0.98:
+            # If confidence is low, provide guidance
+            confidence = extraction_and_classification.get('confidence', 0)
+            if confidence > 0 and confidence < 0.70:
                 result['needsMoreInfo'] = True
                 result['currentConfidence'] = confidence
-                result['confidenceTarget'] = 0.98
-                result['additionalInfoNeeded'] = extracted_data.get('additionalInfoNeeded', 'More detailed symptom information needed for accurate subspecialty classification')
+                result['confidenceTarget'] = 0.70
         
         return create_response(200, result)
         
@@ -335,9 +335,9 @@ def handle_chat_conversation(data: Dict) -> Dict:
             'message': str(e)
         })
 
-def extract_structured_data_from_conversation(conversation_history: List[Dict]) -> Dict:
+def extract_and_classify_from_conversation(conversation_history: List[Dict]) -> Dict:
     """
-    Use Bedrock to extract structured data from conversation and determine readiness
+    Single Bedrock call to extract data AND classify if ready - combines extraction + classification
     """
     try:
         # Combine all conversation messages
@@ -346,46 +346,60 @@ def extract_structured_data_from_conversation(conversation_history: List[Dict]) 
             role = "Doctor" if msg['sender'] == 'user' else "Assistant"
             conversation_text += f"{role}: {msg['text']}\n"
         
-        extraction_prompt = f"""You are a medical data extraction AI. Analyze this conversation and extract structured information.
+        # Create specialty list with subspecialties for classification
+        specialty_list = []
+        for specialty, subspecialties in MEDICAL_SPECIALTIES.items():
+            specialty_list.append(f"- {specialty}")
+            if subspecialties:
+                for subspecialty in subspecialties:
+                    specialty_list.append(f"  • {subspecialty}")
+        
+        specialty_list_str = "\n".join(specialty_list)
+        
+        combined_prompt = f"""You are a medical AI that extracts data from conversations AND classifies cases when ready.
 
 Conversation:
 {conversation_text}
 
-Extract the following information if mentioned and determine if we have enough to classify:
-1. Patient age group (REQUIRED) - "Adult" or "Child" based on button selection
-2. Symptoms description - include age group context (e.g., "Adult with chest pain" or "Child with fever")
+Available Medical Specialties and Subspecialties:
+{specialty_list_str}
+
+TASK 1: Extract Information
+1. Patient age group - "Adult" or "Child"
+2. Symptoms description with age group context
 3. Urgency level (low/medium/high)
-4. Whether we have enough information to classify and move to form
 
-CRITICAL REQUIREMENTS FOR CLASSIFICATION:
-- ONLY set "canClassify" to true if you have COMPREHENSIVE information including:
+TASK 2: Evaluate Classification Readiness
+Determine if symptoms are CLEAR or VAGUE:
+
+- Set "canClassify" to true if you have:
   * Age group (Adult/Child)
-  * DETAILED symptoms with sufficient context and specificity
-  * Duration, onset, and progression of symptoms
-  * Associated symptoms and their timing
-  * Relevant medical history, medications, allergies
-  * Physical examination findings if available
-  * Enough information to confidently distinguish between multiple subspecialties within a specialty
-  * At least 5-7 specific clinical details that point to a particular subspecialty
+  * Key symptoms with sufficient context
+  * Basic severity/duration information
+- At least 4-5 specific clinical details that point to a particular subspecialty
 
-CONFIDENCE THRESHOLD: Only classify when you can achieve 98% confidence in subspecialty selection.
+CONFIDENCE THRESHOLD: Only classify when you have narrowed it down to one specialty and subspecialty with a 90% confidence.
 
-EXAMPLES OF INSUFFICIENT INFORMATION (canClassify: false):
-- "Child with unexplained rash and high fever" - need rash characteristics, distribution, timing, associated symptoms, vital signs
-- "Adult with chest pain" - need character, location, radiation, triggers, duration, associated symptoms
-- "Child with breathing problems" - need onset, triggers, severity, associated symptoms, response to treatments
-- "Adult with headache" - need type, location, triggers, frequency, associated symptoms, neurological signs
-- "Child with stomach pain" - need location, character, timing, associated symptoms, examination findings
+CLEAR (canClassify: true, confidence: 0.85-1.0):
+- Multiple specific details present
+- Can confidently match to one subspecialty
 
-EXAMPLES OF SUFFICIENT INFORMATION (canClassify: true):
-- "5-year-old with widespread erythematous maculopapular rash for 3 days, fever 104°F, cervical lymphadenopathy, pharyngitis, no response to antihistamines, no recent medications, fully immunized"
-- "45-year-old with crushing substernal chest pain radiating to left arm, 30 minutes duration, diaphoresis, nausea, no relief with rest, history of hypertension and smoking"
+VAGUE (canClassify: false, confidence: 0.3-0.7):
+- Lacks specific details
+- Could match multiple subspecialties
 
-Age Group Examples:
-- "Adult (18+ years)" → ageGroup: "Adult"
-- "Child (0-17 years)" → ageGroup: "Child"
-- "Adult with symptoms" → ageGroup: "Adult"
-- "Child with symptoms" → ageGroup: "Child"
+TASK 3: Classify (ONLY if canClassify is true)
+If you determine canClassify is true, identify:
+- PRIMARY specialty from the list above
+- SPECIFIC subspecialty from the list above
+- Brief reasoning
+- Confidence score
+
+IMPORTANT:
+- For children: PRIMARY="Pediatrician", SUBSPECIALTY="Pediatric [appropriate area]"
+- For urgent cases, consider Emergency Medicine subspecialties
+- Always provide subspecialty when classifying
+- Base classification on symptoms and age group
 
 SYMPTOMS FORMATTING:
 Always format symptoms with age group context:
@@ -395,54 +409,131 @@ Always format symptoms with age group context:
 Respond ONLY with a JSON object:
 {{
     "ageGroup": "Adult" or "Child" or null,
-    "symptoms": "Age group with description (e.g., 'Adult with chest pain and shortness of breath')" or null,
+    "symptoms": "Age group with description" or null,
     "urgency": "low/medium/high" or null,
     "canClassify": true/false,
-    "reasoning": "explanation of why classification is or is not possible with current information, including confidence assessment",
     "confidence": 0.0-1.0,
-    "confidenceThreshold": 0.98,
-    "additionalInfoNeeded": "specific information needed to reach 98% confidence" or null
-}}"""
+    "reasoning": "brief explanation of readiness",
+    "classification": {{
+        "specialty": "PRIMARY Specialty Name",
+        "subspecialty": "SPECIFIC Subspecialty Name",
+        "reasoning": "why this specialty/subspecialty",
+        "confidence": 0.7-1.0,
+        "urgency_assessment": "low/medium/high",
+        "source": "bedrock"
+    }} or null
+}}
+
+If canClassify is false, set classification to null."""
 
         payload = {
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": 1000,
             "messages": [
                 {
                     "role": "user",
-                    "content": extraction_prompt
+                    "content": [
+                        {
+                            "text": combined_prompt
+                        }
+                    ]
                 }
             ],
-            "temperature": 0.1  # Low temperature for consistent extraction
+            "inferenceConfig": {
+                "max_new_tokens": 2000,  # Increased for combined response
+                "temperature": 0.1,
+                "top_p": 0.9
+            }
         }
         
         response = bedrock.invoke_model(
-            modelId='anthropic.claude-3-haiku-20240307-v1:0',
+            modelId='us.amazon.nova-2-lite-v1:0',  # Use Amazon Nova 2 Lite
             contentType='application/json',
             accept='application/json',
             body=json.dumps(payload)
         )
         
-        response_body = json.loads(response['body'].read())
-        extraction_response = response_body['content'][0]['text']
+        # Read and log the raw response
+        raw_response_body = response['body'].read()
+        logger.info(f"Raw combined extraction+classification response: {raw_response_body[:500]}")
         
-        logger.info(f"Data extraction response: {extraction_response}")
+        # Parse the response body
+        try:
+            response_body = json.loads(raw_response_body)
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse response body as JSON: {e}")
+            logger.error(f"Raw response: {raw_response_body}")
+            return {'canClassify': False, 'error': f'Invalid response format: {str(e)}'}
+        
+        # Nova response format
+        if 'output' in response_body:
+            combined_response = response_body['output']['message']['content'][0]['text']
+        else:
+            combined_response = response_body['content'][0]['text']
+        
+        logger.info(f"Combined extraction+classification response: {combined_response}")
         
         # Parse the JSON response
         try:
-            extracted_data = json.loads(extraction_response)
+            json_match = re.search(r'\{[\s\S]*\}', combined_response)
+            if json_match:
+                json_str = json_match.group(0)
+                result = json.loads(json_str)
+            else:
+                result = json.loads(combined_response)
             
-            # Clean up the data - no need to process patientAge anymore
-            logger.info(f"Extracted structured data: {extracted_data}")
-            return extracted_data
+            logger.info(f"Parsed combined result: {result}")
             
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse extraction response: {e}")
-            return {'canClassify': False}
+            # Validate classification if present
+            if result.get('classification'):
+                classification = result['classification']
+                
+                # Validate specialty exists
+                if classification['specialty'] not in MEDICAL_SPECIALTIES:
+                    logger.warning(f"Invalid specialty: {classification['specialty']}")
+                    # Try to find closest match
+                    for specialty in MEDICAL_SPECIALTIES.keys():
+                        if specialty.lower() in classification['specialty'].lower():
+                            classification['specialty'] = specialty
+                            break
+                    else:
+                        # Default based on age group
+                        classification['specialty'] = 'Pediatrician' if result.get('ageGroup') == 'Child' else 'Internist'
+                
+                # Validate subspecialty with flexible matching
+                if classification.get('subspecialty') and classification['subspecialty'] != 'null':
+                    available_subspecialties = MEDICAL_SPECIALTIES[classification['specialty']]
+                    subspecialty = classification['subspecialty']
+                    
+                    if subspecialty not in available_subspecialties:
+                        # Try flexible matching
+                        matched = False
+                        for available_sub in available_subspecialties:
+                            if (subspecialty.lower() in available_sub.lower() or 
+                                available_sub.lower() in subspecialty.lower()):
+                                classification['subspecialty'] = available_sub
+                                matched = True
+                                logger.info(f"Matched subspecialty '{subspecialty}' to '{available_sub}'")
+                                break
+                        
+                        if not matched:
+                            logger.warning(f"Subspecialty '{subspecialty}' not in list for {classification['specialty']}")
+                else:
+                    classification['subspecialty'] = None
+                
+                classification['source'] = 'bedrock'
+                result['classification'] = classification
+            
+            return result
+            
+        except (json.JSONDecodeError, KeyError, ValueError) as e:
+            logger.error(f"Failed to parse combined response: {e}")
+            logger.error(f"Raw response: {combined_response}")
+            return {'canClassify': False, 'error': f'Parse error: {str(e)}'}
         
     except Exception as e:
-        logger.error(f"Data extraction error: {str(e)}")
-        return {'canClassify': False}
+        logger.error(f"Combined extraction+classification error: {str(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return {'canClassify': False, 'error': str(e)}
 
 def handle_specialty_classification(data: Dict) -> Dict:
     """
@@ -472,16 +563,29 @@ def build_conversation_context(conversation_history: List[Dict], current_message
     """
     Build conversation context for Bedrock with focus on medical data extraction
     """
-    system_prompt = """You are a medical triage assistant helping doctors connect with volunteer specialists.
+    # Create specialty list with subspecialties for context
+    specialty_list = []
+    for specialty, subspecialties in MEDICAL_SPECIALTIES.items():
+        specialty_list.append(f"- {specialty} [")
+        if subspecialties:
+            for subspecialty in subspecialties:
+                specialty_list.append(f"  • {subspecialty}")
+        specialty_list.append(f"]")
+
+    specialty_list_str = "\n".join(specialty_list)
+
+    system_prompt = f"""You are a medical triage assistant helping doctors connect with volunteer specialists.
+
+Available Medical Specialties and Subspecialties:
+{specialty_list_str}
 
 Your goals:
-1. Gather COMPREHENSIVE information through systematic questioning
-2. Ask targeted follow-up questions to achieve 98% confidence in subspecialty classification
-3. DO NOT classify until you have extensive clinical details
-4. Be thorough and methodical - ask multiple specific questions before considering classification
-5. Focus on gathering enough information to distinguish between subspecialties within a specialty
+1. Gather key information through systematic questioning
+2. Ask 2-3 targeted follow-up questions to narrow down to one subspecialty classification
+3. Be thorough and methodical - ask multiple specific questions before considering classification
+4. Focus on gathering enough information to distinguish between subspecialties within a specialty
 
-CONFIDENCE TARGET: Aim for 98% confidence in subspecialty selection before classification.
+CONFIDENCE TARGET: Aim for 90% confidence in subspecialty selection before classification.
 
 SYSTEMATIC QUESTIONING APPROACH:
 - Start with broad symptom description
@@ -494,19 +598,18 @@ SYSTEMATIC QUESTIONING APPROACH:
 
 CRITICAL: Do not suggest classification based on limited information. 
 Always ask multiple follow-up questions to gather comprehensive clinical details.
+If they have no more information, classify to the best of your ability.
 
 QUESTIONING STRATEGY:
-- Ask 3-5 specific follow-up questions before considering classification
+- Ask 2-3 specific follow-up questions before considering classification
 - Focus on details that help distinguish between subspecialties
 - Gather information systematically and thoroughly
 
-WORD LIMIT: Keep "reasoning" field under 300 words maximum.
-
-Remember: Thorough information gathering over speed - ask comprehensive questions for confident subspecialty matching."""
+WORD LIMIT: Keep "reasoning" field under 300 words maximum."""
 
     context = system_prompt + "\n\nConversation so far:\n"
     
-    for msg in conversation_history[-4:]:  # Keep last 4 messages for context
+    for msg in conversation_history:
         role = "Doctor" if msg['sender'] == 'user' else "Assistant"
         context += f"{role}: {msg['text']}\n"
     
@@ -521,20 +624,21 @@ def call_bedrock_for_chat(conversation_context: str) -> str:
     try:
         payload = {
             "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": 800,
+            "max_tokens": 2000,
             "messages": [
                 {
                     "role": "user",
                     "content": conversation_context
                 }
             ],
-            "temperature": 0.5
+            "temperature": 0.5,
+            "top_p": 0.999
         }
         
         logger.info(f"Calling Bedrock for chat with context length: {len(conversation_context)}")
         
         response = bedrock.invoke_model(
-            modelId='anthropic.claude-3-haiku-20240307-v1:0',  # Use Claude 3 Haiku model
+            modelId='us.anthropic.claude-3-5-haiku-20241022-v1:0',  # Use Claude 3.5 Haiku for chat
             contentType='application/json',
             accept='application/json',
             body=json.dumps(payload)
@@ -555,12 +659,17 @@ def classify_with_bedrock(symptoms: str, age_group: str, urgency: str) -> Dict:
     Use Bedrock to classify medical case - NO FALLBACK
     """
     try:
-        # Create specialty list for prompt
-        specialty_list = "\n".join([f"- {specialty}" for specialty in MEDICAL_SPECIALTIES.keys()])
-        
-        # Create specialty list for prompt
-        specialty_list = "\n".join([f"- {specialty}" for specialty in MEDICAL_SPECIALTIES.keys()])
-        
+        # Create specialty list with subspecialties for context
+        specialty_list = []
+        for specialty, subspecialties in MEDICAL_SPECIALTIES.items():
+            specialty_list.append(f"- {specialty} [")
+            if subspecialties:
+                for subspecialty in subspecialties:
+                    specialty_list.append(f"  • {subspecialty}")
+            specialty_list.append(f"]")
+
+        specialty_list_str = "\n".join(specialty_list)
+
         prompt = f"""You are a medical triage AI expert. Based on the patient information below, identify the most appropriate PRIMARY medical specialty and SPECIFIC subspecialty.
 
 Patient Information:
@@ -568,58 +677,85 @@ Patient Information:
 - Symptoms: {symptoms}
 - Urgency: {urgency}
 
-Available Medical Specialties:
-{specialty_list}
+Available Medical Specialties and Subspecialties:
+{specialty_list_str}
 
-CRITICAL INSTRUCTIONS:
+INSTRUCTIONS:
 1. Identify the PRIMARY specialty that best matches this case
-2. ALWAYS provide a SPECIFIC subspecialty - this is REQUIRED, not optional
+2. Provide a SPECIFIC subspecialty from the list above when applicable
 3. For children: PRIMARY="Pediatrician", SUBSPECIALTY="Pediatric [appropriate area]"
 4. For urgent cases, consider Emergency Medicine subspecialties
 5. Base subspecialty choice on the specific symptoms and patient presentation
 6. Consider the age group when making specialty decisions
-7. CONFIDENCE REQUIREMENT: Only classify if you can achieve 98% confidence in subspecialty selection
-8. If confidence is below 98%, indicate what additional information is needed
+7. Use your medical knowledge to make the best match with available information
 
 Respond ONLY with a JSON object in this exact format:
 {{
     "specialty": "PRIMARY Specialty Name",
-    "subspecialty": "SPECIFIC Subspecialty Name",
-    "reasoning": "Detailed explanation of why this PRIMARY specialty and SPECIFIC subspecialty were chosen based on age group and symptoms",
-    "confidence": 0.98,
-    "urgency_assessment": "low/medium/high",
-    "additional_info_needed": "List any additional information that would increase confidence" or null
+    "subspecialty": "SPECIFIC Subspecialty Name" or null,
+    "reasoning": "Brief explanation of why this specialty and subspecialty were chosen",
+    "confidence": 0.9,
+    "urgency_assessment": "low/medium/high"
 }}"""
 
         payload = {
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": 1200,
             "messages": [
                 {
                     "role": "user",
-                    "content": prompt
+                    "content": [
+                        {
+                            "text": prompt
+                        }
+                    ]
                 }
             ],
-            "temperature": 0.1
+            "inferenceConfig": {
+                "max_new_tokens": 1200,
+                "temperature": 0.1,
+                "top_p": 0.9
+            }
         }
         
         logger.info(f"Calling Bedrock classification with age_group: {age_group}, symptoms: {symptoms[:100]}...")
         
         response = bedrock.invoke_model(
-            modelId='anthropic.claude-3-haiku-20240307-v1:0',  # Use Claude 3 Haiku model
+            modelId='us.amazon.nova-2-lite-v1:0',  # Use Amazon Nova 2 Lite for classification
             contentType='application/json',
             accept='application/json',
             body=json.dumps(payload)
         )
         
-        response_body = json.loads(response['body'].read())
-        bedrock_response = response_body['content'][0]['text']
+        # Read and log the raw response
+        raw_response_body = response['body'].read()
+        logger.info(f"Raw Bedrock response body: {raw_response_body[:500]}")
+        
+        # Parse the response body
+        try:
+            response_body = json.loads(raw_response_body)
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse Bedrock response body as JSON: {e}")
+            logger.error(f"Raw response: {raw_response_body}")
+            raise Exception(f"Bedrock returned invalid response format: {str(e)}")
+        
+        # Nova response format is different from Claude
+        if 'output' in response_body:
+            # Nova format
+            bedrock_response = response_body['output']['message']['content'][0]['text']
+        else:
+            # Claude format (fallback)
+            bedrock_response = response_body['content'][0]['text']
         
         logger.info(f"Bedrock classification response: {bedrock_response}")
         
-        # Parse JSON response
+        # Parse JSON response - extract JSON from markdown if needed
         try:
-            classification = json.loads(bedrock_response)
+            # Try to extract JSON from the response (might have markdown formatting)
+            json_match = re.search(r'\{[\s\S]*\}', bedrock_response)
+            if json_match:
+                json_str = json_match.group(0)
+                classification = json.loads(json_str)
+            else:
+                classification = json.loads(bedrock_response)
             
             # Validate specialty exists
             if classification['specialty'] not in MEDICAL_SPECIALTIES:
