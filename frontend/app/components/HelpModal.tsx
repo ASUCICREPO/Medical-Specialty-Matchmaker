@@ -39,7 +39,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
       />
       
       {/* Modal */}
-      <div className="relative bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white rounded-xl shadow-2xl max-w-2xl lg:max-w-3xl mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-wti-navy">Help & Support</h2>
