@@ -39,7 +39,7 @@ export function ClinicianForm({ onBack, onNext }: ClinicianFormProps) {
 
   return (
     <div className="min-h-[calc(100vh-120px)] px-6 py-8">
-      <div className="max-w-[600px] mx-auto">
+      <div className="max-w-2xl lg:max-w-3xl mx-auto">
         <BackButton onClick={onBack} />
         
         <ProgressIndicator currentStep={1} totalSteps={3} />

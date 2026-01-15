@@ -243,8 +243,8 @@ export function ChatInterface({ onBack, onNext }: ChatInterfaceProps) {
   };
 
   return (
-    <div className="min-h-[calc(100vh-120px)] px-6 py-8 flex flex-col">
-      <div className="max-w-[600px] mx-auto w-full flex flex-col flex-1">
+    <div className="px-6 py-8 flex flex-col">
+      <div className="max-w-2xl lg:max-w-3xl mx-auto w-full flex flex-col flex-1">
         <BackButton onClick={onBack} />
         
         <ProgressIndicator currentStep={2} totalSteps={3} />
@@ -254,17 +254,14 @@ export function ChatInterface({ onBack, onNext }: ChatInterfaceProps) {
           style={{ boxShadow: 'rgba(2, 30, 66, 0.1) 0px 2px 8px' }}
         >
           {/* Header */}
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="mb-1 text-xl font-semibold text-wti-navy">
-              Patient Context
+          <div className="p-4 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-wti-navy">
+              Medical Specialty Matchmaker Chatbot
             </h2>
-            <p className="text-gray-600 text-sm">
-              Tell me about your patient so I can match the right specialist
-            </p>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-6" style={{ maxHeight: '500px' }}>
+          <div className="overflow-y-auto p-6 h-[65vh]">
             {messages.map((message) => (
               <ChatBubble
                 key={message.id}
@@ -306,55 +303,60 @@ export function ChatInterface({ onBack, onNext }: ChatInterfaceProps) {
           </div>
 
           {/* Input */}
-          <div className="p-6 border-t border-gray-200">
-            <div className="flex gap-2 items-end">
-              <textarea
-                ref={textareaRef}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder={
-                  !ageGroupSelected 
-                    ? "Please select age group first..." 
-                    : isLoading 
-                    ? "Processing..." 
-                    : "Type your response... (Shift+Enter for new line)"
-                }
-                className="flex-1 px-4 py-3 rounded-lg bg-[#f3f3f5] border-2 border-transparent focus:border-wti-teal outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 placeholder-gray-600 resize-none min-h-[48px] max-h-[120px] overflow-y-auto auto-resize-textarea"
-                disabled={isLoading || !ageGroupSelected}
-                rows={1}
-                style={{
-                  height: 'auto',
-                  minHeight: '48px',
-                  maxHeight: '120px'
-                }}
-                onInput={(e) => {
-                  const target = e.target as HTMLTextAreaElement;
-                  target.style.height = 'auto';
-                  target.style.height = Math.min(target.scrollHeight, 120) + 'px';
-                }}
-              />
-              <button
-                onClick={handleSendMessage}
-                disabled={!inputValue.trim() || isLoading || !ageGroupSelected}
-                className="px-6 py-3 rounded-lg bg-wti-red text-white hover:bg-wti-red-hover disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 min-w-[60px] flex items-center justify-center"
-              >
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  width="24" 
-                  height="24" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="2" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  className="w-5 h-5"
+          <div className="p-6 border-t border-gray-200 mt-auto">
+            <div className="flex gap-2">
+              <div className="flex-1 flex flex-col justify-end">
+                <textarea
+                  ref={textareaRef}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder={
+                    !ageGroupSelected 
+                      ? "Please select age group first..." 
+                      : isLoading 
+                      ? "Processing..." 
+                      : "Type your response... (Shift+Enter for new line)"
+                  }
+                  className="w-full px-3 py-3 rounded-lg bg-[#f3f3f5] outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 placeholder-gray-600 resize-none overflow-y-auto"
+                  disabled={isLoading || !ageGroupSelected}
+                  rows={1}
+                  style={{
+                    minHeight: '48px',
+                    maxHeight: '120px',
+                    verticalAlign: 'bottom'
+                  }}
+                  onInput={(e) => {
+                    const target = e.target as HTMLTextAreaElement;
+                    target.style.height = '48px';
+                    const newHeight = Math.min(target.scrollHeight, 120);
+                    target.style.height = newHeight + 'px';
+                  }}
+                />
+              </div>
+              <div className="flex items-end">
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!inputValue.trim() || isLoading || !ageGroupSelected}
+                  className="px-6 py-3 rounded-lg bg-wti-red text-white hover:bg-wti-red-hover disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 min-w-[60px] flex items-center justify-center h-[48px]"
                 >
-                  <path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"></path>
-                  <path d="m21.854 2.147-10.94 10.939"></path>
-                </svg>
-              </button>
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="24" 
+                    height="24" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    className="w-5 h-5"
+                  >
+                    <path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"></path>
+                    <path d="m21.854 2.147-10.94 10.939"></path>
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
         </div>

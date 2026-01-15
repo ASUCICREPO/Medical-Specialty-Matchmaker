@@ -17,7 +17,7 @@ export function WelcomeScreen({
 }: WelcomeScreenProps) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-120px)] px-6 py-12">
-      <div className="max-w-[600px] w-full">
+      <div className="max-w-2xl lg:max-w-3xl w-full">
         {/* Logo Section */}
         <div className="flex justify-center mb-12">
           <Image
@@ -48,16 +48,16 @@ export function WelcomeScreen({
                   />
                 </svg>
               </div>
-              <h2 className="text-lg font-semibold text-wti-navy">
+              <h2 className="text-lg font-semibold text-white">
                 Welcome back, {clinicianName}!
               </h2>
             </div>
-            <p className="text-wti-dark-teal text-sm mb-4">
+            <p className="text-gray-200 text-sm mb-2">
               Your information is saved. You can start a new consultation request right away.
             </p>
             <button 
               onClick={onClearClinicianData}
-              className="text-wti-dark-teal hover:text-wti-navy text-sm underline transition-colors"
+              className="text-gray-200 hover:text-white text-sm underline transition-colors"
             >
               Use different clinician information
             </button>

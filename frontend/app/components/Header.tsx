@@ -10,7 +10,7 @@ export function Header() {
   return (
     <>
       <header className="w-full border-b border-gray-200 bg-white py-4 px-6">
-        <div className="max-w-[600px] mx-auto flex items-center justify-between">
+        <div className="max-w-2xl lg:max-w-3xl mx-auto flex items-center justify-between">
           <Image
             src="/WTI-logo-horiz-800px.png"
             alt="World Telehealth Initiative"

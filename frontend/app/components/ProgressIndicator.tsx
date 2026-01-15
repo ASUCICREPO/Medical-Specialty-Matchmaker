@@ -5,7 +5,7 @@ interface ProgressIndicatorProps {
 
 export function ProgressIndicator({ currentStep, totalSteps }: ProgressIndicatorProps) {
   return (
-    <div className="flex items-center justify-center gap-2 mb-8">
+    <div className="flex items-center justify-center mb-8">
       {Array.from({ length: totalSteps }, (_, index) => {
         const stepNumber = index + 1;
         const isCompleted = stepNumber < currentStep;
@@ -37,7 +37,7 @@ export function ProgressIndicator({ currentStep, totalSteps }: ProgressIndicator
               )}
             </div>
             {stepNumber < totalSteps && (
-              <div className={`w-12 h-1 mx-1 ${
+              <div className={`w-12 h-1 mx-2 ${
                 isCompleted ? 'bg-wti-teal' : 'bg-gray-200'
               }`} />
             )}
