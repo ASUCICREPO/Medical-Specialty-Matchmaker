@@ -33,8 +33,8 @@ export class MSMBackendStack extends cdk.Stack {
         REQUESTS_TABLE: medicalRequestsTable.tableName,
         BEDROCK_REGION: this.region
       },
-      timeout: cdk.Duration.seconds(30),
-      memorySize: 512,
+      timeout: cdk.Duration.seconds(60),  // Increased from 30 to 60 seconds
+      memorySize: 1024,  // Increased from 512 to 1024 MB for better performance
     });
 
     // Data Handler Lambda (Python)

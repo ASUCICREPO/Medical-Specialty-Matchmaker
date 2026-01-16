@@ -1,264 +1,170 @@
 # Medical Specialty Matchmaker
 
-A chatbot application that helps healthcare professionals in resource-constrained settings connect with volunteer medical experts worldwide. The system uses AI to classify medical cases and match them with appropriate specialists.
+An AI-powered medical triage system that helps healthcare professionals in resource-constrained settings connect with volunteer medical experts worldwide. The system uses AWS Bedrock AI to intelligently classify medical cases and match them with appropriate specialists.
 
-## Mission
+## Demo Video
 
-We provide sustainable medical expertise to resource-constrained hospitals and clinics globally, through a corps of volunteer healthcare professionals supported by telehealth technology. Local clinicians are upskilled so they can serve more of their own community and patients receive advanced healthcare.
+Watch the complete demonstration of Medical Specialty Matchmaker:
 
-## Features
+<div align="center">
+<a href="[INSERT_DEMO_VIDEO_URL]">
+<img src="./docs/media/demo-thumbnail.png" alt="Medical Specialty Matchmaker Demo" width="650">
+</a>
+<p><em>Click the image above to watch the demo</em></p>
+</div>
 
-- **Intelligent Case Classification**: AI-powered analysis of symptoms to identify appropriate medical specialties
-- **Guided Form Filling**: Step-by-step chatbot interface to collect necessary information
-- **Privacy-First Design**: No personally identifiable patient information is collected
-- **Multi-Specialty Matching**: Supports matching across various medical specialties
+> **[PLACEHOLDER]** Please provide a demo video thumbnail image and save it as `docs/media/demo-thumbnail.png`, and update the video URL link above.
 
-## Architecture
+## Index
 
-### Frontend (Next.js)
-- **Framework**: Next.js 16 with React 19
-- **Styling**: Tailwind CSS with WTI brand colors
-- **Components**: Modular chatbot interface with form validation
-- **Hosting**: AWS Amplify with automatic deployments
+| Description           | Link                                                  |
+| --------------------- | ----------------------------------------------------- |
+| Overview              | [Overview](#overview)                                 |
+| Architecture          | [Architecture](#architecture-diagram)                 |
+| Detailed Architecture | [Detailed Architecture](docs/architectureDeepDive.md) |
+| Deployment            | [Deployment](#deployment)                             |
+| User Guide            | [User Guide](docs/userGuide.md)                       |
+| API Documentation     | [API Documentation](docs/APIDoc.md)                   |
+| Infrastructure        | [Infrastructure](docs/architectureDeepDive.md)        |
+| Modification Guide    | [Modification Guide](docs/modificationGuide.md)       |
+| Model Justification   | [Model Justification](docs/modelJustification.md)     |
+| Credits               | [Credits](#credits)                                   |
+| License               | [License](#license)                                   |
 
-### Backend (AWS CDK)
-- **Infrastructure**: AWS CDK for cloud resources
-- **AI/ML**: AWS Bedrock with Claude 3.5 Haiku for intelligent conversations and classification
-- **Database**: DynamoDB for storing medical requests
-- **API**: AWS API Gateway with Lambda functions
-- **Classification**: AI-powered symptom analysis and specialty matching with 98% confidence threshold
+---
 
-## 🚀 Deployment Guide
+## Overview
 
-### Prerequisites
+This application combines AI-powered conversational intelligence with systematic medical triage to connect healthcare professionals with appropriate specialists. Built on a serverless AWS architecture with dual AI models, the system provides intelligent case classification across 30+ medical specialties and 200+ subspecialties, enabling sustainable medical expertise delivery to resource-constrained hospitals and clinics globally.
 
-Before deploying, ensure you have:
+### Key Features
 
-- **Node.js 18+** installed
-- **AWS CLI** installed and configured
-- **AWS CDK** installed globally: `npm install -g aws-cdk`
-- **Git** for cloning the repository
-- **AWS Account** with appropriate permissions
+- **AI-Powered Triage** powered by AWS Bedrock with Claude 3.5 Haiku and Amazon Nova 2 Lite
+- **Conversational Interface** with intelligent follow-up questions to gather necessary information
+- **Multi-Specialty Support** covering 30+ primary specialties and 200+ subspecialties
+- **Pediatric & Adult Routing** with age-appropriate specialty matching
+- **Confidence Scoring** with 90% threshold for subspecialty classification
+- **Privacy-First Design** with no personally identifiable patient information collected
+- **Real-time Classification** providing immediate specialty recommendations
+- **Request Management** with DynamoDB storage and retrieval capabilities
 
-### Step 1: Clone and Setup
+## Architecture Diagram
 
-```bash
-# Clone the repository
-git clone https://github.com/ASUCICREPO/Medical-Specialty-Matchmaker.git
-cd Medical-Specialty-Matchmaker
+![Architecture Diagram](./docs/media/architecture.png)
 
-# Install backend dependencies
-cd backend
-npm install
+The application implements a serverless, event-driven architecture with AI-powered classification at its core, combining conversational intelligence with systematic medical triage.
 
-# Install frontend dependencies  
-cd ../frontend
-npm install
-cd ..
-```
+For a detailed deep dive into the architecture, including core principles, component interactions, data flow, security, and implementation details, see [docs/architectureDeepDive.md](docs/architectureDeepDive.md).
 
-### Step 2: AWS Configuration
+## User Flow
 
-#### Configure AWS CLI
-```bash
-# Configure your AWS credentials
-aws configure
+For a detailed overview of the user journey and application workflow, including step-by-step user interactions, see [docs/userGuide.md](docs/userGuide.md).
 
-# Or use AWS SSO (recommended)
-aws configure sso
-```
+## Deployment
 
-#### Bootstrap CDK (First-time only)
-```bash
-cd backend
-npx cdk bootstrap --profile your-aws-profile
-```
+Deploying Medical Specialty Matchmaker requires AWS CLI and CDK. The deployment can be done from your local machine or AWS CloudShell:
 
-### Step 3: Set Up GitHub Integration (Optional)
-
-If you want Amplify to auto-deploy from your GitHub repository:
-
-```bash
-# Store your GitHub Personal Access Token in AWS Secrets Manager
-aws secretsmanager create-secret \
-  --name "github-token" \
-  --description "GitHub Personal Access Token for Amplify" \
-  --secret-string "your-github-token-here" \
-  --region your-aws-profile-region \
-  --profile your-aws-profile
-```
-
-**To create a GitHub token:**
-1. Go to GitHub Settings → Developer settings → Personal access tokens
-2. Generate new token with `repo` permissions
-3. Copy the token and use it in the command above
-
-### Step 4: Deploy Backend Infrastructure
-
-```bash
-cd backend
-
-# Deploy all AWS resources
-npx cdk deploy --profile your-aws-profile 
-```
-
-This creates:
-- ✅ DynamoDB table for medical requests
-- ✅ Lambda functions for chatbot logic
-- ✅ API Gateway endpoints
-- ✅ IAM roles and policies
-- ✅ Amplify app for frontend hosting
-
-### Step 5: Update Repository Settings (If using GitHub integration)
-
-After deployment, update your CDK stack with your repository URL:
-
-1. Fork this repository to your GitHub account
-2. Update `backend/lib/backend-stack.ts` line ~133:
-   ```typescript
-   repository: 'https://github.com/YOUR-USERNAME/Medical-Specialty-Matchmaker',
-   ```
-3. Redeploy:
+1. **Configure AWS credentials**
    ```bash
-   npx cdk deploy --profile your-aws-profile
+   # For AWS SSO (recommended)
+   aws sso login --profile your-profile-name
+   export AWS_PROFILE=your-profile-name
+   export AWS_REGION=us-west-2
    ```
 
-### Step 6: Verify Deployment
+2. **Clone the repository**
+   ```bash
+   git clone https://github.com/ASUCICREPO/Medical-Specialty-Matchmaker.git
+   cd Medical-Specialty-Matchmaker
+   ```
 
-After deployment completes, you'll see outputs like:
-```
-✅  MSMBackendStack
+3. **Set up GitHub token (optional, for Amplify auto-deploy)**
+   ```bash
+   aws secretsmanager create-secret \
+     --name "github-token" \
+     --description "GitHub Personal Access Token for Amplify" \
+     --secret-string "your-github-token-here" \
+     --region us-west-2
+   ```
 
-Outputs:
-MSMBackendStack.AmplifyAppId = <APP-ID>
-MSMBackendStack.AmplifyAppUrl = https://main.<APP-ID>.amplifyapp.com
-MSMBackendStack.AmplifyConsoleUrl = https://console.aws.amazon.com/amplify/home?region=<REGION>#/<APP-ID>
-MSMBackendStack.ApiUrl = https://<COPY-THIS-BASE-URL>/prod/
-MSMBackendStack.ChatbotAPIEndpointC82E045D = https://<BASE-URL>/prod/
-MSMBackendStack.ChatbotEndpoint = https://<BASE-URL>/prod/chatbot
-MSMBackendStack.DataEndpoint = https://<BASE-URL>/prod/data
-```
+4. **Run the deployment script**
+   ```bash
+   bash ./deploy.sh
+   ```
 
-### Step 7: Environment Variables
-- Create a `.env` file in the frontend folder and follow `.example.env` by pasting the copied base url into the environment variables
+The deployment script handles everything automatically, including:
+- Prerequisites checking (Node.js, AWS CLI, CDK)
+- Dependency installation
+- CDK bootstrapping (if needed)
+- Backend infrastructure deployment
+- Frontend environment configuration
+- Amplify build triggering
 
-### Step 8: Run Deployment
+For detailed instructions, troubleshooting, and manual deployment steps, see [docs/deploymentGuide.md](docs/deploymentGuide.md).
+
+## Usage
+
+For detailed usage instructions, including:
+- How to start a conversation
+- Providing patient information
+- Understanding classification results
+- Submitting requests
+- Privacy best practices
+
+See [docs/userGuide.md](docs/userGuide.md).
+
+## Infrastructure
+
+For a detailed overview of the application infrastructure, including:
+- Component interactions
+- AWS services used
+- Data flow
+- Security considerations
+- Scalability features
+
+See [docs/architectureDeepDive.md](docs/architectureDeepDive.md).
+
+## Documentation
+
+- **[API Documentation](docs/APIDoc.md)** - Comprehensive API reference for all endpoints
+- **[Architecture Deep Dive](docs/architectureDeepDive.md)** - Detailed system architecture and design
+- **[User Guide](docs/userGuide.md)** - Step-by-step usage instructions
+- **[Modification Guide](docs/modificationGuide.md)** - Guide for customizing and extending the system
+- **[Model Justification](docs/modelJustification.md)** - Rationale for AI model selection
+
+## Modification Guide
+
+Steps to implement optional modifications such as:
+- Changing the Bedrock models
+- Adding new features
+- Customizing the frontend
+- Modifying classification logic
+- Adding new specialties
+
+Can be found [here](docs/modificationGuide.md).
+
+## Resource Cleanup
+
+To delete all AWS resources and avoid ongoing charges:
 
 ```bash
-aws amplify start-job --app-id your-app-id --branch-name main --job-type RELEASE --region your-region --profile your-aws-profile
+export AWS_PROFILE=your-profile-name
+export AWS_REGION=us-west-2
+bash ./destroy.sh
 ```
 
-## 🔧 Local Development
+The destroy script will safely remove all deployed resources including Lambda functions, API Gateway, DynamoDB tables, and Amplify app.
 
-### Frontend Development
-```bash
-cd frontend
-npm run dev
-# Open http://localhost:3000
-```
+---
 
-### Backend Testing
-```bash
-cd backend
-npm run test
-```
+## Credits
 
-## 🛠️ Configuration
+This application was developed to improve global healthcare access by connecting healthcare professionals in resource-constrained settings with volunteer medical experts worldwide.
 
-### AWS Regions
-- **Recommended region**: `us-east-1` (has Claude 3.x models without marketplace requirements)
-- **Alternative regions**: `us-west-2`, `us-east-2` 
-- **Note**: `us-west-1` only has Claude 4.x models which require AWS Marketplace subscriptions
-- To change region, update `backend/bin/backend.ts` and redeploy
+Developed as part of the ASU Cloud Innovation Center initiative to provide sustainable medical expertise to underserved communities globally.
 
-### Bedrock Models
-The system uses Claude 3 Haiku by default. To change models, update `backend/lambda/chatbot_orchestrator.py`:
-```python
-model_id = "anthropic.claude-3-haiku-20241022-v1:0"
-```
-- Ensure the model you are using is available on the current region
-
-### Response Length
-Chatbot response limits are configured in `chatbot_orchestrator.py`:
-- Conversational: 1000 tokens
-- Classification: 800 tokens  
-- Data extraction: 1200 tokens
-
-## 🔍 Troubleshooting
-
-### Common Issues
-
-**CDK Bootstrap Error**
-```bash
-# Run bootstrap with explicit region
-npx cdk bootstrap aws://ACCOUNT-ID/ACCOUNT-REGION --profile your-profile
-```
-
-**Amplify Build Fails**
-- Check that your repository is public or GitHub token has correct permissions
-- Verify the repository URL in `backend-stack.ts`
-
-**Bedrock Access Denied**
-- Ensure your AWS account has Bedrock access enabled
-- Check that the deployment region supports Claude models
-
-**API Gateway 403 Errors**
-- Verify CORS configuration in API Gateway
-- Check Lambda function permissions
-
-### Logs and Monitoring
-
-- **Lambda Logs**: CloudWatch → Log Groups → `/aws/lambda/MSMBackendStack-*`
-- **Amplify Builds**: AWS Console → Amplify → Your App → Build History
-- **API Gateway**: AWS Console → API Gateway → Medical Specialty Matchmaker API
-
-## 🔄 Updates and Maintenance
-
-### Updating the Application
-```bash
-# Pull latest changes
-git pull origin main
-
-# Deploy backend updates
-cd backend
-npx cdk deploy --profile your-profile
-
-# Frontend updates deploy automatically via Amplify
-```
-
-### Monitoring Costs
-- Lambda: Pay per request (very low cost)
-- DynamoDB: Pay per read/write (minimal for typical usage)
-- Bedrock: Pay per token (~$0.25 per 1M tokens)
-- Amplify: Free tier covers most small deployments
-
-## 🔒 Security Considerations
-
-- All API endpoints use HTTPS
-- No PII is stored in the database
-- AWS IAM follows least-privilege principles
-- Bedrock calls are region-restricted
-- GitHub tokens are stored in AWS Secrets Manager
-
-## 📞 Support
-
-For deployment issues:
-1. Check the troubleshooting section above
-2. Review AWS CloudWatch logs
-3. Verify all prerequisites are met
-4. Ensure AWS permissions are correctly configured
-
-## Privacy & Security
-
-- No personally identifiable patient information is collected
-- All data is anonymized and aggregated
-- HIPAA-compliant design principles
-- Secure data transmission and storage
-
-## Contributing
-
-This project is designed to serve healthcare professionals in underserved communities. Contributions are welcome, especially from medical professionals and developers with healthcare experience.
+---
 
 ## License
 
-This project is developed for humanitarian purposes to improve global healthcare access.
+See [LICENSE](LICENSE) file for details.
