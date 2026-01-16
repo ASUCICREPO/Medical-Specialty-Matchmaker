@@ -143,18 +143,6 @@ Steps to implement optional modifications such as:
 
 Can be found [here](docs/modificationGuide.md).
 
-## Resource Cleanup
-
-To delete all AWS resources and avoid ongoing charges:
-
-```bash
-export AWS_PROFILE=your-profile-name
-export AWS_REGION=us-west-2
-bash ./destroy.sh
-```
-
-The destroy script will safely remove all deployed resources including Lambda functions, API Gateway, DynamoDB tables, and Amplify app.
-
 ---
 
 ## Credits
