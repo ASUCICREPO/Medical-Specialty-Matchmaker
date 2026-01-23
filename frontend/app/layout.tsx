@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Medical Specialty Matchmaker - World Telehealth Initiative",
-  description: "Get connected to the right specialist, fast. Our intelligent system helps you describe your consultation needs and matches you with the appropriate volunteer specialist physician.",
+  description: "Get connected to the right specialist, fast. Our intelligent system helps you describe your consultation needs and matches you with the appropriate volunteer specialist.",
 };
 
 export default function RootLayout({

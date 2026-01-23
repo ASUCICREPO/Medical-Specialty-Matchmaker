@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const AWS_DATA_URL = process.env.NEXT_PUBLIC_DATA_URL || '';
+import { config } from '@/lib/config';
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,14 +8,14 @@ export async function POST(request: NextRequest) {
 
     console.log('📥 Data API Request:', { action });
 
-    // Always use AWS - no local fallback
-    if (!AWS_DATA_URL) {
+    // Validate configuration
+    if (!config.api.dataUrl) {
       return NextResponse.json({ 
         error: 'AWS Data URL not configured. Please check your environment variables.' 
       }, { status: 500 });
     }
 
-    const response = await fetch(AWS_DATA_URL, {
+    const response = await fetch(config.api.dataUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { ProgressIndicator } from '../ProgressIndicator';
-import { BackButton } from '../BackButton';
-import { ChatBubble } from '../ChatBubble';
-import { QuickReplyChip } from '../QuickReplyChip';
+import { ProgressIndicator } from '../components/ProgressIndicator';
+import { BackButton } from '../components/BackButton';
+import { ChatBubble } from '../components/ChatBubble';
+import { QuickReplyChip } from '../components/QuickReplyChip';
 
 interface ChatInterfaceProps {
   onBack: () => void;

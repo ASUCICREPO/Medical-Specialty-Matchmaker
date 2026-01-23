@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { Header } from './components/Header';
-import { WelcomeScreen } from './components/screens/WelcomeScreen';
-import { ClinicianForm, ClinicianData } from './components/screens/ClinicianForm';
-import { ChatInterface, ChatData } from './components/screens/ChatInterface';
-import { FormReview } from './components/screens/FormReview';
+import { WelcomeScreen } from './screens/WelcomeScreen';
+import { ClinicianForm, ClinicianData } from './screens/ClinicianForm';
+import { ChatInterface, ChatData } from './screens/ChatInterface';
+import { FormReview } from './screens/FormReview';
 
 type Screen = 'welcome' | 'clinician-form' | 'chat' | 'form-review' | 'success';
 

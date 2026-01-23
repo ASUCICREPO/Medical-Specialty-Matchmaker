@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { ProgressIndicator } from '../ProgressIndicator';
-import { BackButton } from '../BackButton';
+import { ProgressIndicator } from '../components/ProgressIndicator';
+import { BackButton } from '../components/BackButton';
 import { ClinicianData } from './ClinicianForm';
 import { ChatData } from './ChatInterface';
 
