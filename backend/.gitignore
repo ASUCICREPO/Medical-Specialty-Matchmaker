@@ -9,3 +9,6 @@ cdk.out
 
 # CDK outputs (environment-specific)
 cdk-outputs.json
+
+# Environment variables
+.env
