@@ -352,7 +352,7 @@ List medical requests with optional filtering.
 
 ## Medical Specialties
 
-The system supports classification across 30+ primary specialties and 200+ subspecialties found ![here](https://docs.google.com/spreadsheets/d/1P0gvebpwdb_vR7vhrEwX7baxUqB20pbq/edit?usp=sharing&ouid=116325285806947898650&rtpof=true&sd=true).
+The system supports classification across 30+ primary specialties and 200+ subspecialties found [here](https://docs.google.com/spreadsheets/d/1P0gvebpwdb_vR7vhrEwX7baxUqB20pbq/edit?usp=sharing&ouid=116325285806947898650&rtpof=true&sd=true).
 
 ## Error Codes
 

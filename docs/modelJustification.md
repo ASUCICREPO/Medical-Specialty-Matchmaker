@@ -159,7 +159,7 @@ This dual-model approach optimizes for both conversational quality and classific
 
 ### Evaluation Methodology
 
-For testing data utilized, see the ![model-eval-data](./model-eval-data/) folder
+For testing data utilized, see the [model-eval-data](./model-eval-data/) folder
 
 **Test Dataset:**
 - 100 synthetic medical cases across various specialties
