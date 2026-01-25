@@ -257,7 +257,7 @@ npx cdk deploy --profile your-profile
 ### Monitoring Costs
 - Lambda: Pay per request (very low cost)
 - DynamoDB: Pay per read/write (minimal for typical usage)
-- Bedrock: Pay per token ![check out model price comparisons](https://aws.amazon.com/bedrock/pricing/)
+- Bedrock: Pay per token [check out model price comparisons](https://aws.amazon.com/bedrock/pricing/)
 - Amplify: Free tier covers most small deployments
 
 ## 🔒 Security Considerations
