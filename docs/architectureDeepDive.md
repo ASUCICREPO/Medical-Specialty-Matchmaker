@@ -1,76 +1,8 @@
 # Architecture Deep Dive
 
-This document provides a detailed explanation of the Medical Specialty Matchmaker architecture.
+## Architecture Overview
 
----
-
-## Architecture Diagram
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         Frontend Layer                              │
-│  ┌───────────────────────────────────────────────────────────────┐  │
-│  │              Next.js Application (AWS Amplify)                │  │
-│  │  - React 19 with Server Components                            │  │
-│  │  - Tailwind CSS for styling                                   │  │
-│  │  - Conversational chat interface                              │  │
-│  │  - Real-time classification feedback                          │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               │ HTTPS
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                         API Gateway Layer                           │
-│  ┌───────────────────────────────────────────────────────────────┐  │
-│  │              Amazon API Gateway (REST API)                    │  │
-│  │  - /chatbot endpoint (POST)                                   │  │
-│  │  - /data endpoint (POST)                                      │  │
-│  │  - CORS configuration                                         │  │
-│  │  - Request throttling (10K req/sec)                           │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-└──────────────────┬──────────────────────────┬───────────────────────┘
-                   │                          │
-                   ▼                          ▼
-┌──────────────────────────────┐  ┌──────────────────────────────┐
-│   Chatbot Orchestrator       │  │      Data Handler            │
-│   Lambda Function            │  │      Lambda Function         │
-│  ┌────────────────────────┐  │  │  ┌────────────────────────┐  │
-│  │ - Python 3.11          │  │  │  │ - Python 3.11          │  │
-│  │ - 1024 MB memory       │  │  │  │ - 256 MB memory        │  │
-│  │ - 60 second timeout    │  │  │  │ - 30 second timeout    │  │
-│  │ - Conversation logic   │  │  │  │ - DynamoDB operations  │  │
-│  │ - Data extraction      │  │  │  │ - CRUD operations      │  │
-│  │ - Classification       │  │  │  │ - Request storage      │  │
-│  └────────────────────────┘  │  │  └────────────────────────┘  │
-└──────────────┬───────────────┘  └──────────────┬───────────────┘
-               │                                 │
-               ▼                                 ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                      AWS Bedrock AI Layer                           │
-│  ┌───────────────────────────┐  ┌───────────────────────────────┐  │
-│  │  Claude 3.5 Haiku         │  │  Amazon Nova 2 Lite           │  │
-│  │  - Conversational chat    │  │  - Data extraction            │  │
-│  │  - Follow-up questions    │  │  - Classification             │  │
-│  │  - Medical guidance       │  │  - Confidence scoring         │  │
-│  │  - Max tokens: 2000       │  │  - Max tokens: 2000           │  │
-│  │  - Temperature: 0.5       │  │  - Temperature: 0.1           │  │
-│  └───────────────────────────┘  └───────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────┘
-               │
-               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                      Data Storage Layer                             │
-│  ┌───────────────────────────────────────────────────────────────┐  │
-│  │              Amazon DynamoDB                                  │  │
-│  │  - medical-requests table                                     │  │
-│  │  - Partition key: id (string)                                 │  │
-│  │  - On-demand billing mode                                     │  │
-│  │  - Stores: symptoms, classification, doctor info              │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
----
+![Architecture Diagram](./media/architecture.png)
 
 ## Architecture Flow
 
@@ -155,8 +87,6 @@ The generated response is:
 - Displayed in the web interface with classification details
 - Stored in DynamoDB for future reference
 - Available for specialist matching and follow-up
-
----
 
 ## Cloud Services / Technology Stack
 
@@ -253,8 +183,6 @@ The generated response is:
   - Used for Amplify GitHub integration
   - Encrypted at rest
   - Automatic rotation support
-
----
 
 ## Infrastructure as Code
 
@@ -358,64 +286,10 @@ The project uses a unified deployment script (`deploy.sh`) that:
 
 ### Resource Cleanup
 
-The project includes a destruction script (`destroy.sh`) that:
-- Confirms deletion with user (requires typing "yes")
-- Deletes Amplify app and all deployments
-- Empties S3 buckets before deletion
-- Destroys CloudFormation stack
-- Removes all Lambda functions, API Gateway, DynamoDB table
-- Cleans up local files (cdk-outputs.json, .env)
-- Provides detailed progress updates
-
----
-
-## Security Considerations
-
-Medical Specialty Matchmaker implements multiple layers of security to protect sensitive medical information:
-
-### Data Privacy
-
-- **No PII Collection**: System designed to avoid collecting patient names, dates of birth, or contact information
-- **Anonymized Data**: All patient information is anonymized and aggregated
-- **HIPAA-Compliant Design**: Follows HIPAA design principles for healthcare data
-- **Minimal Data Storage**: Only stores information necessary for specialist matching
-
-### Authentication & Authorization
-
-- **Public Endpoints**: Chat and data endpoints are currently public (no authentication required)
-- **Future Enhancement**: Cognito authentication planned for admin endpoints
-- **API Key Support**: Can be added for production deployments
-- **Token-Based Auth**: Ready for JWT token integration
-
-### Network Security
-
-- **HTTPS Only**: All API endpoints use TLS encryption
-- **CORS Configuration**: Restricts cross-origin requests to approved domains
-- **API Gateway Throttling**: Rate limiting prevents abuse (10,000 req/sec)
-- **Request Validation**: All inputs validated before processing
-
-### Data Encryption
-
-- **Encryption at Rest**: DynamoDB tables encrypted with AWS managed keys
-- **Encryption in Transit**: All data transmitted over HTTPS/TLS
-- **Secrets Management**: GitHub tokens stored in AWS Secrets Manager
-- **Key Rotation**: Supports automatic key rotation
-
-### IAM Security
-
-- **Least Privilege**: Lambda functions have minimal required permissions
-- **Role Separation**: Each Lambda has its own execution role
-- **Resource-Based Policies**: DynamoDB and Bedrock access restricted by resource
-- **No Hardcoded Credentials**: All credentials managed by AWS IAM
-
-### Logging & Monitoring
-
-- **CloudWatch Logs**: All Lambda executions logged
-- **PII Exclusion**: Sensitive data excluded from logs
-- **Error Tracking**: Detailed error logs for debugging
-- **Audit Trail**: All API requests logged for compliance
-
----
+```bash
+cd backend
+npx cdk destroy --profile your-aws-profile
+```
 
 ## Scalability
 
@@ -470,13 +344,6 @@ The serverless architecture of Medical Specialty Matchmaker automatically scales
   - Amazon Nova 2 Lite: Efficient classification
   - Both optimized for low latency
 
-### Caching Strategies
-
-- **Application-Level Caching**: Can cache specialty lists and common responses
-- **API Gateway Caching**: Can enable response caching for frequently accessed endpoints
-- **Amplify CDN**: Caches static assets and pages automatically
-- **DynamoDB DAX**: Can add DynamoDB Accelerator for microsecond latency
-
 ### Cost Optimization
 
 - **Serverless Architecture**: Pay only for what you use
@@ -497,8 +364,6 @@ The serverless architecture of Medical Specialty Matchmaker automatically scales
   - API Gateway: $0-3
   - **Total: $5-35/month**
 
----
-
 ## Monitoring and Observability
 
 ### CloudWatch Logs
@@ -517,89 +382,3 @@ All components log to CloudWatch for centralized monitoring:
   - Execution logs for debugging
   - Error tracking
   - Latency metrics
-
-### Metrics and Alarms
-
-Key metrics to monitor:
-
-- **Lambda Metrics**
-  - Invocation count
-  - Error rate
-  - Duration (p50, p99)
-  - Concurrent executions
-  - Throttles
-
-- **API Gateway Metrics**
-  - Request count
-  - 4xx/5xx errors
-  - Latency
-  - Cache hit/miss ratio
-
-- **DynamoDB Metrics**
-  - Read/write capacity units
-  - Throttled requests
-  - System errors
-  - Latency
-
-### Debugging and Troubleshooting
-
-Useful CloudWatch Insights queries:
-
-```sql
--- Find all errors in chatbot Lambda
-fields @timestamp, @message
-| filter @message like /ERROR/
-| sort @timestamp desc
-| limit 100
-
--- Track classification confidence scores
-fields @timestamp, extractedData.confidence
-| filter action = "chat"
-| stats avg(extractedData.confidence) by bin(5m)
-
--- Monitor API Gateway latency
-fields @timestamp, latency
-| stats avg(latency), max(latency), min(latency) by bin(5m)
-```
-
----
-
-## Future Enhancements
-
-Planned architectural improvements:
-
-### Authentication & Authorization
-- [ ] Cognito user pools for admin access
-- [ ] API key authentication for public endpoints
-- [ ] Role-based access control (RBAC)
-- [ ] Multi-factor authentication (MFA)
-
-### Performance
-- [ ] DynamoDB DAX for caching
-- [ ] API Gateway response caching
-- [ ] Lambda provisioned concurrency for critical functions
-- [ ] WebSocket support for real-time chat
-
-### Features
-- [ ] Multi-language support in AI responses
-- [ ] Specialist matching and notification system
-- [ ] Request status tracking and updates
-- [ ] Analytics dashboard for administrators
-- [ ] Webhook notifications for new requests
-
-### Scalability
-- [ ] Multi-region deployment
-- [ ] Global DynamoDB tables
-- [ ] Cross-region replication
-- [ ] Disaster recovery automation
-
----
-
-## Support
-
-For architecture questions or issues:
-1. Review this document and the [API Documentation](./APIDoc.md)
-2. Check CloudWatch logs for detailed error messages
-3. Verify all AWS services are available in your region
-4. Review [Troubleshooting Guide](../README.md#troubleshooting)
-5. Open an issue on GitHub with architecture-specific questions

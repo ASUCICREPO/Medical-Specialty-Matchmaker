@@ -2,13 +2,9 @@
 
 This guide provides step-by-step instructions for using the Medical Specialty Matchmaker.
 
----
-
 ## Prerequisites
 
 **Please ensure the application is deployed before proceeding.** See the [Deployment Guide](./deploymentGuide.md) for deployment instructions.
-
----
 
 ## Introduction
 
@@ -26,8 +22,6 @@ The Medical Specialty Matchmaker is designed to help doctors and healthcare prof
 - **Privacy-First Design**: No personally identifiable patient information collected
 - **Real-time Classification**: Immediate specialty recommendations when sufficient information is gathered
 
----
-
 ## Getting Started
 
 ### Step 1: Access the Application
@@ -40,8 +34,6 @@ The landing page displays:
 - A text input field at the bottom for entering patient information
 - Clear instructions for getting started
 
----
-
 ### Step 2: Start a Conversation
 
 The system will greet you and ask: **"Is the patient a child or an adult?"**
@@ -51,8 +43,6 @@ Select or type your response:
 - **"Adult"** for adult cases
 
 This initial information helps the system route to age-appropriate specialties.
-
----
 
 ### Step 3: Describe the Patient's Condition
 
@@ -72,8 +62,6 @@ The patient is 8 years old, experiencing severe pain, and
 cannot bear any weight on the affected leg."
 ```
 
----
-
 ### Step 4: Answer Follow-up Questions
 
 The AI will ask 2-3 targeted follow-up questions to gather sufficient information for accurate classification. These questions help narrow down the appropriate subspecialty.
@@ -85,8 +73,6 @@ The AI will ask 2-3 targeted follow-up questions to gather sufficient informatio
 - "What is the patient's pain level on a scale of 1-10?"
 
 Answer each question as completely as possible. The more specific information you provide, the more accurate the classification will be.
-
----
 
 ### Step 5: Review the Classification
 
@@ -115,8 +101,6 @@ Confidence: 95%
 Urgency: High
 ```
 
----
-
 ### Step 6: Submit the Request
 
 After receiving the classification, you can submit the complete request with your information:
@@ -134,8 +118,6 @@ The system will:
 - Provide confirmation of submission
 - Display the request ID for future reference
 
----
-
 ## Common Use Cases
 
 ### Use Case 1: Pediatric Emergency
@@ -151,8 +133,6 @@ The system will:
 
 **Expected Outcome**: High-confidence classification to pediatric orthopedic surgery with high urgency assessment.
 
----
-
 ### Use Case 2: Adult Chronic Condition
 
 **Scenario**: An adult patient with ongoing symptoms needs specialist referral.
@@ -165,8 +145,6 @@ The system will:
 5. Submit request for specialist consultation
 
 **Expected Outcome**: Classification to cardiology with medium urgency, detailed reasoning about cardiovascular concerns.
-
----
 
 ### Use Case 3: Complex Multi-System Case
 
@@ -181,8 +159,6 @@ The system will:
 6. Submit request with additional context in notes
 
 **Expected Outcome**: The AI will ask more questions to narrow down the primary concern and provide the most appropriate specialty match.
-
----
 
 ## Tips and Best Practices
 
@@ -207,8 +183,6 @@ The system will:
 - **No Dates of Birth**: Avoid specific dates that could identify patients
 - **No Contact Info**: Do not include patient phone numbers or addresses
 - **Anonymize Details**: Use general descriptions rather than identifying information
-
----
 
 ## Understanding Confidence Scores
 
@@ -247,40 +221,9 @@ The system uses confidence scores to determine when it has enough information to
 - Contradictory symptoms
 - Lack of context
 
----
-
 ## Supported Medical Specialties
 
-The system supports classification across:
-
-### Primary Specialties (30+)
-- Allergy and Immunology
-- Anesthesiologist
-- Dermatologist
-- Emergency Medicine Physician
-- Family Physician
-- Internist
-- Neurologist
-- Obstetrician/Gynecologist
-- Ophthalmologist
-- Orthopaedic Surgeon
-- Pediatrician
-- Psychiatrist
-- Surgeon
-- And many more...
-
-### Subspecialties (200+)
-- Pediatric Cardiology
-- Pediatric Emergency Medicine
-- Cardiovascular Disease
-- Gastroenterology
-- Pediatric Orthopaedic Surgery
-- Neurocritical Care
-- And many more...
-
 For a complete list, see the [API Documentation](./APIDoc.md#medical-specialties).
-
----
 
 ## Frequently Asked Questions (FAQ)
 
@@ -333,8 +276,6 @@ For a complete list, see the [API Documentation](./APIDoc.md#medical-specialties
 - You receive confirmation with the request ID
 - The information is available for specialist matching
 - (Future feature: Automated specialist notification)
-
----
 
 ## Troubleshooting
 
@@ -394,8 +335,6 @@ For a complete list, see the [API Documentation](./APIDoc.md#medical-specialties
 - Check CloudWatch logs if you have admin access
 - Report persistent errors to technical support
 
----
-
 ## Privacy and Security
 
 ### Data Protection
@@ -423,8 +362,6 @@ The Medical Specialty Matchmaker is designed with privacy as a priority:
 - Data retention policies can be configured by administrators
 - Contact your administrator for data deletion requests
 
----
-
 ## Getting Help
 
 If you encounter issues not covered in this guide:
@@ -448,16 +385,12 @@ If you encounter issues not covered in this guide:
 - See [Architecture Deep Dive](./architectureDeepDive.md) for system design
 - Contribute improvements via GitHub pull requests
 
----
-
 ## Next Steps
 
 - Explore the [API Documentation](./APIDoc.md) for programmatic access
 - Check the [Architecture Deep Dive](./architectureDeepDive.md) to understand how the system works
 - See the [Modification Guide](./modificationGuide.md) if you want to customize the application
 - Review the [Deployment Guide](./deploymentGuide.md) for deployment and configuration options
-
----
 
 ## Feedback and Contributions
 

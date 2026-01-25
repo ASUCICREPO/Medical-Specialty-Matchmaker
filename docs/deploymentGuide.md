@@ -1,44 +1,74 @@
-# Medical Specialty Matchmaker
+# Deployment Guide
 
-A chatbot application that helps healthcare professionals in resource-constrained settings connect with volunteer medical experts worldwide. The system uses AI to classify medical cases and match them with appropriate specialists.
+## Prerequisites
 
-## Mission
+### AWS Account Setup
+1. **AWS Account**: Ensure you have an AWS account with appropriate permissions
+2. **Bedrock Access**: Enable access to Amazon Bedrock models in your region
+3. **AWS CLI**: Install and configure AWS CLI with your credentials
+4. **AWS CDK** installed globally: `npm install -g aws-cdk`
+5. **Node.js**: Install Node.js (version 18 or later)
+6. **Git**: Ensure Git is installed for repository cloning
 
-We provide sustainable medical expertise to resource-constrained hospitals and clinics globally, through a corps of volunteer healthcare professionals supported by telehealth technology. Local clinicians are upskilled so they can serve more of their own community and patients receive advanced healthcare.
+### Required AWS Permissions
+Your AWS user/role needs the following permissions:
+- Full access to AWS CDK operations
+- Bedrock model invocation and knowledge base management
+- Lambda, API Gateway, and DynamoDB permissions
+- Amplify permissions for deployment
 
-## Features
+### Set Up GitHub Integration (Optional)
 
-- **Intelligent Case Classification**: AI-powered analysis of symptoms to identify appropriate medical specialties
-- **Guided Form Filling**: Step-by-step chatbot interface to collect necessary information
-- **Privacy-First Design**: No personally identifiable patient information is collected
-- **Multi-Specialty Matching**: Supports matching across various medical specialties
+If you want Amplify to auto-deploy from your GitHub repository:
 
-## Architecture
+```bash
+# Store your GitHub Personal Access Token in AWS Secrets Manager
+aws secretsmanager create-secret \
+  --name "github-token" \
+  --description "GitHub Personal Access Token for Amplify" \
+  --secret-string "your-github-token-here" \
+  --region your-aws-profile-region \
+  --profile your-aws-profile
+```
 
-### Frontend (Next.js)
-- **Framework**: Next.js 16 with React 19
-- **Styling**: Tailwind CSS with WTI brand colors
-- **Components**: Modular chatbot interface with form validation
-- **Hosting**: AWS Amplify with automatic deployments
+**To create a GitHub token:**
+1. Go to GitHub Settings → Developer settings → Personal access tokens
+2. Generate new token with `repo` permissions
+3. Copy the token and use it in the command above
 
-### Backend (AWS CDK)
-- **Infrastructure**: AWS CDK for cloud resources
-- **AI/ML**: AWS Bedrock with Claude 3.5 Haiku for intelligent conversations and classification
-- **Database**: DynamoDB for storing medical requests
-- **API**: AWS API Gateway with Lambda functions
-- **Classification**: AI-powered symptom analysis and specialty matching with 98% confidence threshold
+## Quick Deploy with deploy.sh
 
-## 🚀 Deployment Guide
+1. **Configure AWS credentials**
+   ```bash
+   # For AWS SSO (recommended)
+   aws sso login --profile your-profile-name
+   export AWS_PROFILE=your-profile-name
+   export AWS_REGION=your-aws-region
+   ```
 
-### Prerequisites
+   - **Note**: Please ensure both AI models are available in the region you select (Haiku 3.5 & Nova 2 Lite)
 
-Before deploying, ensure you have:
+2. **Clone the repository**
+   ```bash
+   git clone https://github.com/ASUCICREPO/Medical-Specialty-Matchmaker.git
+   cd Medical-Specialty-Matchmaker
+   ```
 
-- **Node.js 18+** installed
-- **AWS CLI** installed and configured
-- **AWS CDK** installed globally: `npm install -g aws-cdk`
-- **Git** for cloning the repository
-- **AWS Account** with appropriate permissions
+3. **Set up GitHub token (optional, for Amplify auto-deploy)**
+   ```bash
+   aws secretsmanager create-secret \
+     --name "github-token" \
+     --description "GitHub Personal Access Token for Amplify" \
+     --secret-string "your-github-token-here" \
+     --region your-aws-region
+   ```
+
+4. **Run the deployment script**
+   ```bash
+   bash ./deploy.sh
+   ```
+
+## Step-by-step Deployment Guide
 
 ### Step 1: Clone and Setup
 
@@ -172,17 +202,15 @@ npm run test
 - To change region, update `backend/bin/backend.ts` and redeploy
 
 ### Bedrock Models
-The system uses Claude 3 Haiku by default. To change models, update `backend/lambda/chatbot_orchestrator.py`:
+The system uses Claude 3.5 Haiku for chatting and Nove 2 Lite for data extraction and classification. To change models, update `backend/lambda/chatbot_orchestrator.py`:
 ```python
-model_id = "anthropic.claude-3-haiku-20241022-v1:0"
+modelId='us.anthropic.claude-3-5-haiku-20241022-v1:0'
+modelId='us.amazon.nova-2-lite-v1:0'
 ```
 - Ensure the model you are using is available on the current region
 
 ### Response Length
-Chatbot response limits are configured in `chatbot_orchestrator.py`:
-- Conversational: 1000 tokens
-- Classification: 800 tokens  
-- Data extraction: 1200 tokens
+Chatbot response limits are configured in `chatbot_orchestrator.py`
 
 ## 🔍 Troubleshooting
 
@@ -229,7 +257,7 @@ npx cdk deploy --profile your-profile
 ### Monitoring Costs
 - Lambda: Pay per request (very low cost)
 - DynamoDB: Pay per read/write (minimal for typical usage)
-- Bedrock: Pay per token (~$0.25 per 1M tokens)
+- Bedrock: Pay per token (![check out model price comparisons](https://aws.amazon.com/bedrock/pricing/))
 - Amplify: Free tier covers most small deployments
 
 ## 🔒 Security Considerations
@@ -239,26 +267,3 @@ npx cdk deploy --profile your-profile
 - AWS IAM follows least-privilege principles
 - Bedrock calls are region-restricted
 - GitHub tokens are stored in AWS Secrets Manager
-
-## 📞 Support
-
-For deployment issues:
-1. Check the troubleshooting section above
-2. Review AWS CloudWatch logs
-3. Verify all prerequisites are met
-4. Ensure AWS permissions are correctly configured
-
-## Privacy & Security
-
-- No personally identifiable patient information is collected
-- All data is anonymized and aggregated
-- HIPAA-compliant design principles
-- Secure data transmission and storage
-
-## Contributing
-
-This project is designed to serve healthcare professionals in underserved communities. Contributions are welcome, especially from medical professionals and developers with healthcare experience.
-
-## License
-
-This project is developed for humanitarian purposes to improve global healthcare access.

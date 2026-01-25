@@ -2,7 +2,6 @@
 
 This document explains the rationale behind the AI model selection for the Medical Specialty Matchmaker system.
 
----
 
 ## Executive Summary
 
@@ -11,8 +10,6 @@ The Medical Specialty Matchmaker uses two AWS Bedrock models for different tasks
 - **Amazon Nova 2 Lite** for data extraction and classification
 
 This dual-model approach optimizes for both conversational quality and classification accuracy while maintaining cost-effectiveness and low latency.
-
----
 
 ## Table of Contents
 
@@ -23,8 +20,6 @@ This dual-model approach optimizes for both conversational quality and classific
 5. [Performance Evaluation](#performance-evaluation)
 6. [Cost Analysis](#cost-analysis)
 7. [Future Considerations](#future-considerations)
-
----
 
 ## Model Selection Criteria
 
@@ -47,11 +42,9 @@ This dual-model approach optimizes for both conversational quality and classific
 - **Cost per Request**: Average cost per classification
 - **Confidence Calibration**: Alignment between confidence scores and accuracy
 
----
+## Claude Haiku 3.5 for Conversational Chat
 
-## Claude 3.5 Haiku for Conversational Chat
-
-### Why Claude 3.5 Haiku?
+### Why Claude Haiku 3.5?
 
 **Model ID**: `us.anthropic.claude-3-5-haiku-20241022-v1:0`
 
@@ -85,8 +78,6 @@ This dual-model approach optimizes for both conversational quality and classific
 - Token efficiency: ~500-800 tokens per response
 - User satisfaction: High (natural, helpful responses)
 
----
-
 ## Amazon Nova 2 Lite for Classification
 
 ### Why Amazon Nova 2 Lite?
@@ -119,92 +110,56 @@ This dual-model approach optimizes for both conversational quality and classific
 
 **Performance:**
 - Average response time: 1.0-1.5 seconds
-- Classification accuracy: ~92% (based on internal testing)
+- Classification accuracy: ~>95% (based on internal testing)
 - Confidence calibration: Strong correlation between confidence and accuracy
 
 ---
 
 ## Alternative Models Considered
 
-### Claude 3 Sonnet
+### Claude Haiku 3
 **Pros:**
-- Higher accuracy than Haiku
+- Decent response accuracy (~85%)
+- Quick response times
+- Low cost model that got the job done
+
+**Cons:**
+- Struggled to maintain full context
+- Reasoning was decent but had room for improvement
+- Lacked consistency, sometimes question too much or included unnecessary information
+
+**Decision:** Not selected due to lacking in response accuracy and questioning.
+
+### Claude Sonnet 4
+**Pros:**
+- High response accuracy (~95%)
 - Better reasoning capabilities
 - More detailed responses
 
 **Cons:**
-- 3-5x higher cost than Haiku
+- Significantly higher cost
 - Slower inference times
 - Overkill for conversational chat
+- Too wordy
 
-**Decision:** Not selected due to cost and latency concerns for chat use case
+**Decision:** Not selected due to cost and overkill
 
----
-
-### Claude 3 Opus
+### Amazon Nova Pro
 **Pros:**
-- Highest accuracy in Claude family
-- Best reasoning and analysis
-- Superior medical knowledge
+- Internal testing showed good results
 
 **Cons:**
-- 10-15x higher cost than Haiku
-- Significantly slower inference
-- Unnecessary for triage use case
+- High cost
+- Slow inference
+- Throtting Issues during bedrock evaluations
 
-**Decision:** Not selected due to prohibitive cost for humanitarian application
-
----
-
-### GPT-4 / GPT-3.5 (OpenAI)
-**Pros:**
-- Strong general performance
-- Good medical knowledge
-- Widely tested
-
-**Cons:**
-- Not available on AWS Bedrock
-- Requires separate API integration
-- Additional security/compliance considerations
-- Higher operational complexity
-
-**Decision:** Not selected to maintain AWS-native architecture
-
----
-
-### Amazon Titan Text
-**Pros:**
-- AWS native
-- Cost-effective
-- Fast inference
-
-**Cons:**
-- Lower accuracy than Claude/Nova for complex tasks
-- Less sophisticated conversational abilities
-- Weaker medical domain knowledge
-
-**Decision:** Not selected due to accuracy requirements
-
----
-
-### Llama 2/3 (Meta)
-**Pros:**
-- Available on Bedrock
-- Open-source foundation
-- Cost-effective
-
-**Cons:**
-- Lower accuracy than Claude for medical tasks
-- Less refined conversational abilities
-- Requires more prompt engineering
-
-**Decision:** Not selected due to accuracy and conversational quality requirements
-
----
+**Decision:** Not selected due to cost and throtting concerns
 
 ## Performance Evaluation
 
 ### Evaluation Methodology
+
+For testing data utilized, see the ![model-eval-data](./model-eval-data/) folder
 
 **Test Dataset:**
 - 100 synthetic medical cases across various specialties
@@ -241,20 +196,6 @@ This dual-model approach optimizes for both conversational quality and classific
 - Cost per case: ~$0.02-0.04
 - User completion rate: 85%
 
-### Accuracy by Specialty Category
-
-| Category | Accuracy | Sample Size |
-|----------|----------|-------------|
-| Pediatric Emergency | 95% | 15 |
-| Adult Cardiology | 93% | 12 |
-| Orthopedics | 94% | 10 |
-| Neurology | 89% | 8 |
-| Gastroenterology | 91% | 10 |
-| General Surgery | 90% | 12 |
-| Other Specialties | 88% | 33 |
-
----
-
 ## Cost Analysis
 
 ### Cost Breakdown
@@ -276,39 +217,6 @@ This dual-model approach optimizes for both conversational quality and classific
 - Classification (2 calls): ~$0.001
 - **Total: ~$0.02-0.03 per case**
 
-### Cost Comparison with Alternatives
-
-| Model Combination | Cost per Case | Relative Cost |
-|-------------------|---------------|---------------|
-| **Current (Haiku + Nova)** | **$0.02-0.03** | **1x (baseline)** |
-| Sonnet + Nova | $0.08-0.12 | 4x |
-| Opus + Nova | $0.25-0.35 | 12x |
-| Haiku + Haiku | $0.03-0.04 | 1.5x |
-| Sonnet + Sonnet | $0.15-0.20 | 7x |
-
-**Conclusion:** Current model combination provides optimal cost-performance ratio.
-
----
-
-## Future Considerations
-
-### Potential Model Upgrades
-
-1. **Claude 3.5 Sonnet for Complex Cases**
-   - Use Sonnet for cases with low confidence (<70%)
-   - Implement dynamic model selection based on complexity
-   - Estimated cost increase: 10-15% for 5-10% accuracy improvement
-
-2. **Fine-tuned Models**
-   - Fine-tune Nova on medical specialty classification data
-   - Potential accuracy improvement: 3-5%
-   - Requires labeled training dataset
-
-3. **Multi-Model Ensemble**
-   - Use multiple models for classification and vote
-   - Higher accuracy but increased cost and latency
-   - Consider for critical/complex cases only
-
 ### Monitoring and Optimization
 
 **Ongoing Monitoring:**
@@ -328,13 +236,7 @@ This dual-model approach optimizes for both conversational quality and classific
 **Current Regions:**
 - us-west-2 (Oregon) - Primary
 - us-east-1 (N. Virginia) - Alternative
-
-**Future Expansion:**
-- Monitor model availability in additional regions
-- Consider regional deployment for global access
-- Evaluate cross-region latency and costs
-
----
+- us-east-2 (Ohio) - Alternative
 
 ## Conclusion
 
@@ -347,12 +249,3 @@ The dual-model approach using Claude 3.5 Haiku for conversational chat and Amazo
 ✅ **Maintainable**: AWS-native models with consistent APIs  
 
 This combination optimally balances accuracy, speed, and cost for the humanitarian mission of connecting healthcare professionals with volunteer specialists worldwide.
-
----
-
-## References
-
-- [AWS Bedrock Model Documentation](https://docs.aws.amazon.com/bedrock/)
-- [Claude 3.5 Model Card](https://www.anthropic.com/claude)
-- [Amazon Nova Model Documentation](https://aws.amazon.com/bedrock/nova/)
-- Internal evaluation results (available upon request)

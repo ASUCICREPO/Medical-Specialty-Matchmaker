@@ -1,14 +1,8 @@
-# Medical Specialty Matchmaker APIs
-
-This document provides comprehensive API documentation for the Medical Specialty Matchmaker system.
-
----
+# API Documentation
 
 ## Overview
 
-The Medical Specialty Matchmaker API provides endpoints for intelligent medical case triage, specialty classification, and data management. The API is built on AWS API Gateway with Lambda backend functions, supporting CORS for web applications and AI-powered classification using AWS Bedrock.
-
----
+The Medical Specialty Matchmaker API provides endpoints for intelligent medical case triage, specialty classification, and data management. The API is built on AWS API Gateway connecting to Lambda backend functions.
 
 ## Base URL
 
@@ -16,41 +10,19 @@ The Medical Specialty Matchmaker API provides endpoints for intelligent medical 
 https://[API_ID].execute-api.[REGION].amazonaws.com/prod/
 ```
 
-**Example:**
-```
-https://e4neim8r21.execute-api.us-west-2.amazonaws.com/prod/
-```
-
-> **Note**: Replace `[API_ID]` and `[REGION]` with your actual API Gateway endpoint after deployment. The stage is always `prod`.
-
----
-
 ## Authentication
 
-All endpoints are currently public and do not require authentication. Future versions may implement Cognito authentication for admin endpoints.
-
-### Headers Required
-
-| Header | Description | Required |
-|--------|-------------|----------|
-| `Content-Type` | `application/json` | Yes (POST requests) |
-| `Origin` | Origin domain for CORS | Yes (browser requests) |
-
----
+No authentication required for current endpoints.
 
 ## 1) Chatbot Endpoints
 
 Endpoints for conversational medical triage, gathering patient information, and intelligent case classification.
 
----
-
 ### POST /chatbot — Process Chat Message
 
-- **Purpose**: Process a doctor's message about a patient case, gather information through conversational AI, and automatically classify when sufficient information is collected.
+Process a doctor's message about a patient case, gather information through conversational AI, and automatically classify when sufficient information is collected.
 
-- **Authentication**: Not required
-
-- **Request body**:
+#### **Request body**:
 ```json
 {
   "action": "chat",
@@ -90,7 +62,7 @@ Endpoints for conversational medical triage, gathering patient information, and 
 }
 ```
 
-- **Response**:
+#### **Response**:
 ```json
 {
   "response": "string - AI-generated conversational response",
@@ -157,20 +129,11 @@ Endpoints for conversational medical triage, gathering patient information, and 
 }
 ```
 
-- **Status codes**:
-  - `200 OK` - Message processed successfully
-  - `400 Bad Request` - Invalid request body or missing required fields
-  - `500 Internal Server Error` - Server error processing the message
-
----
-
 ### POST /chatbot — Direct Classification
 
-- **Purpose**: Directly classify a medical case when all information is already available (bypasses conversational flow).
+Directly classify a medical case when all information is already available (bypasses conversational flow).
 
-- **Authentication**: Not required
-
-- **Request body**:
+#### **Request body**:
 ```json
 {
   "action": "classify",
@@ -194,7 +157,7 @@ Endpoints for conversational medical triage, gathering patient information, and 
 }
 ```
 
-- **Response**:
+#### **Response**:
 ```json
 {
   "specialty": "string - Primary medical specialty",
@@ -218,26 +181,15 @@ Endpoints for conversational medical triage, gathering patient information, and 
 }
 ```
 
-- **Status codes**:
-  - `200 OK` - Classification successful
-  - `400 Bad Request` - Invalid request body or missing required fields
-  - `500 Internal Server Error` - Classification failed
-
----
-
 ## 2) Data Management Endpoints
 
 Endpoints for storing and retrieving medical request data in DynamoDB.
 
----
-
 ### POST /data — Submit Medical Request
 
-- **Purpose**: Store a complete medical request with classification results in DynamoDB.
+Store a complete medical request with classification results in DynamoDB.
 
-- **Authentication**: Not required
-
-- **Request body**:
+#### **Request body**:
 ```json
 {
   "action": "submit",
@@ -279,7 +231,7 @@ Endpoints for storing and retrieving medical request data in DynamoDB.
 }
 ```
 
-- **Response**:
+#### **Response**:
 ```json
 {
   "success": true,
@@ -299,20 +251,11 @@ Endpoints for storing and retrieving medical request data in DynamoDB.
 }
 ```
 
-- **Status codes**:
-  - `200 OK` - Request stored successfully
-  - `400 Bad Request` - Invalid request body or missing required fields
-  - `500 Internal Server Error` - Database error
-
----
-
 ### POST /data — Get Medical Request
 
-- **Purpose**: Retrieve a specific medical request by ID.
+Retrieve a specific medical request by ID.
 
-- **Authentication**: Not required
-
-- **Request body**:
+#### **Request body**:
 ```json
 {
   "action": "get",
@@ -332,7 +275,7 @@ Endpoints for storing and retrieving medical request data in DynamoDB.
 }
 ```
 
-- **Response**:
+#### **Response**:
 ```json
 {
   "success": true,
@@ -357,21 +300,11 @@ Endpoints for storing and retrieving medical request data in DynamoDB.
 }
 ```
 
-- **Status codes**:
-  - `200 OK` - Request retrieved successfully
-  - `400 Bad Request` - Missing request ID
-  - `404 Not Found` - Request not found
-  - `500 Internal Server Error` - Database error
-
----
-
 ### POST /data — List Medical Requests
 
-- **Purpose**: List medical requests with optional filtering.
+List medical requests with optional filtering.
 
-- **Authentication**: Not required
-
-- **Request body**:
+#### **Request body**:
 ```json
 {
   "action": "list",
@@ -394,7 +327,7 @@ Endpoints for storing and retrieving medical request data in DynamoDB.
 }
 ```
 
-- **Response**:
+#### **Response**:
 ```json
 {
   "success": true,
@@ -417,92 +350,9 @@ Endpoints for storing and retrieving medical request data in DynamoDB.
 }
 ```
 
-- **Status codes**:
-  - `200 OK` - Requests retrieved successfully
-  - `400 Bad Request` - Invalid filter parameters
-  - `500 Internal Server Error` - Database error
-
----
-
 ## Medical Specialties
 
-The system supports classification across 30+ primary specialties and 200+ subspecialties:
-
-### Primary Specialties
-
-- Allergy and Immunology
-- Anesthesiologist
-- Colon and Rectal Surgery
-- Dermatologist
-- Emergency Medicine Physician
-- Family Physician
-- Internist
-- Medical Geneticist
-- Neurological Surgeon
-- Nuclear Medicine Specialist
-- Obstetrician/Gynecologist
-- Ophthalmologist
-- Oral and Maxillofacial Surgeon
-- Orthopaedic Surgeon
-- Otolaryngologist–Head and Neck Surgeon
-- Pathologist
-- Pediatrician
-- Physiatrist
-- Plastic Surgeon
-- Preventive Medicine Physician
-- Neurologist
-- Psychiatrist
-- Diagnostic Radiologist
-- Interventional and Diagnostic Radiologist
-- Radiation Oncologist
-- Radiology (IV. Medical Physics)
-- Surgeon
-- Thoracic/Cardiac Surgeon
-- Urologist
-
-### Pediatric Specialties
-
-For child patients (age group: "Child"), the system automatically routes to pediatric subspecialties:
-
-- Pediatric Cardiology
-- Pediatric Critical Care Medicine
-- Pediatric Emergency Medicine
-- Pediatric Endocrinology
-- Pediatric Gastroenterology
-- Pediatric Hematology–Oncology
-- Pediatric Infectious Diseases
-- Pediatric Nephrology
-- Pediatric Pulmonology
-- Pediatric Rheumatology
-- Pediatric Surgery
-- And many more...
-
----
-
-## Response Format
-
-All API responses follow this general structure:
-
-### Success Response
-```json
-{
-  "success": true,
-  "data": {
-    // Response data fields
-  }
-}
-```
-
-### Error Response
-```json
-{
-  "error": "string - Error type",
-  "message": "string - Detailed error message",
-  "details": "string (optional) - Additional error context"
-}
-```
-
----
+The system supports classification across 30+ primary specialties and 200+ subspecialties found ![here](https://docs.google.com/spreadsheets/d/1P0gvebpwdb_vR7vhrEwX7baxUqB20pbq/edit?usp=sharing&ouid=116325285806947898650&rtpof=true&sd=true).
 
 ## Error Codes
 
@@ -514,7 +364,6 @@ All API responses follow this general structure:
 | `503` | Service Unavailable | AWS Bedrock or DynamoDB service unavailable |
 | `504` | Gateway Timeout | Request exceeded 29-second API Gateway timeout (Lambda may still be processing) |
 
----
 
 ## Rate Limits
 
@@ -527,8 +376,6 @@ For production deployments, consider implementing:
 - Request throttling per client
 - Usage plans with quotas
 
----
-
 ## AI Models Used
 
 The system uses two AWS Bedrock models:
@@ -537,13 +384,13 @@ The system uses two AWS Bedrock models:
    - Used for: Conversational chat responses
    - Max tokens: 2000
    - Temperature: 0.5
+   - Top P: 0.999
 
 2. **Amazon Nova 2 Lite** (`us.amazon.nova-2-lite-v1:0`)
    - Used for: Data extraction and classification
    - Max tokens: 2000
    - Temperature: 0.1
-
----
+   - Top P: 0.9
 
 ## Classification Confidence
 
@@ -552,8 +399,6 @@ The system uses a **90% confidence threshold** for subspecialty classification:
 - **< 70%**: System continues gathering information through conversation
 - **70-89%**: System may classify but indicates lower confidence
 - **≥ 90%**: High confidence classification, ready for specialist matching
-
----
 
 ## CORS Configuration
 
@@ -567,75 +412,10 @@ Access-Control-Allow-Methods: OPTIONS,POST,GET
 
 For production, restrict `Access-Control-Allow-Origin` to your frontend domain.
 
----
-
-## Monitoring and Logs
-
-### CloudWatch Logs
+## CloudWatch Logs
 
 - **Chatbot Lambda**: `/aws/lambda/MSMBackendStack-ChatbotOrchestratorFn`
 - **Data Handler Lambda**: `/aws/lambda/MSMBackendStack-DataHandlerFn`
-
-### Useful Log Queries
-
-```bash
-# Tail chatbot logs
-aws logs tail /aws/lambda/MSMBackendStack-ChatbotOrchestratorFn --follow
-
-# Filter for errors
-aws logs filter-log-events \
-  --log-group-name /aws/lambda/MSMBackendStack-ChatbotOrchestratorFn \
-  --filter-pattern "ERROR"
-
-# View classification results
-aws logs filter-log-events \
-  --log-group-name /aws/lambda/MSMBackendStack-ChatbotOrchestratorFn \
-  --filter-pattern "Final classification"
-```
-
----
-
-## Example Workflows
-
-### Workflow 1: Conversational Triage
-
-1. **Initial message**: Doctor describes patient age group
-2. **System response**: Asks for symptom details
-3. **Follow-up messages**: System asks 2-3 targeted questions
-4. **Classification**: Once confidence ≥ 90%, system provides specialty match
-5. **Submission**: Frontend submits complete request to `/data`
-
-### Workflow 2: Direct Classification
-
-1. **Single request**: Doctor provides all information upfront
-2. **Classification**: System immediately classifies with available data
-3. **Submission**: Frontend submits complete request to `/data`
-
----
-
-## Security Considerations
-
-- **No PII**: System designed to avoid collecting patient names, dates of birth, or contact information
-- **HTTPS Only**: All endpoints use TLS encryption
-- **Input Validation**: All inputs validated before processing
-- **Error Handling**: Sensitive error details not exposed to clients
-- **Logging**: PII excluded from CloudWatch logs
-
----
-
-## Future Enhancements
-
-Planned API improvements:
-
-- [ ] Cognito authentication for admin endpoints
-- [ ] API key authentication for public endpoints
-- [ ] Webhook notifications for new requests
-- [ ] Real-time WebSocket support for chat
-- [ ] Multi-language support in API responses
-- [ ] Request status tracking and updates
-- [ ] Specialist matching and notification system
-
----
 
 ## Support
 
@@ -643,5 +423,3 @@ For API issues:
 1. Check CloudWatch logs for detailed error messages
 2. Verify request format matches documentation
 3. Ensure AWS Bedrock models are available in your region
-4. Review [Troubleshooting Guide](../README.md#troubleshooting)
-5. Open an issue on GitHub with request/response examples
