@@ -62,10 +62,7 @@ def handle_submit_request(data: dict) -> dict:
             'specialty': data.get('specialty', ''),
             'subspecialty': data.get('subspecialty', ''),
             'reasoning': data.get('reasoning', ''),
-            'confidence': convert_to_decimal(data.get('confidence', 0)),
-            'timestamp': timestamp.isoformat(),
-            'createdAt': timestamp.isoformat(),
-            'updatedAt': timestamp.isoformat()
+            'createdAt': timestamp.isoformat()
         }
         
         # Remove empty fields
