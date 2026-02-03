@@ -292,10 +292,7 @@ Retrieve a specific medical request by ID.
     "specialty": "string",
     "subspecialty": "string",
     "reasoning": "string",
-    "confidence": "number",
-    "timestamp": "string (ISO 8601)",
-    "createdAt": "string (ISO 8601)",
-    "updatedAt": "string (ISO 8601)"
+    "createdAt": "string (ISO 8601)"
   }
 }
 ```
