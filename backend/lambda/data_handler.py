@@ -145,7 +145,7 @@ def handle_list_requests(data: dict, request_origin: str = None) -> dict:
         
         if filter_expressions:
             scan_kwargs['FilterExpression'] = ' AND '.join(filter_expressions)
-            scan_kwargs['ExpressionAttributeValues'] = expression_attribute_values--
+            scan_kwargs['ExpressionAttributeValues'] = expression_attribute_values
         
         # Scan table
         response = table.scan(**scan_kwargs)
