@@ -21,6 +21,10 @@ export function FormReview({ onBack, onSubmit, clinicianData, chatData }: FormRe
   const [isReEvaluating, setIsReEvaluating] = useState(false);
   const [symptomsChanged, setSymptomsChanged] = useState(false);
   const [originalSymptoms] = useState(chatData.extractedData?.symptoms || '');
+  const [piiCheckResult, setPiiCheckResult] = useState<any>(null);
+  const [showPiiWarning, setShowPiiWarning] = useState(false);
+  
+  const MAX_SYMPTOMS_LENGTH = 5000;
 
   // Debug: Log the extracted data to see what we're working with
   console.log('🔍 FormReview - chatData.extractedData:', chatData.extractedData);
@@ -29,6 +33,19 @@ export function FormReview({ onBack, onSubmit, clinicianData, chatData }: FormRe
     // Validate symptoms
     if (!symptoms.trim()) {
       setSymptomsError('Symptoms description is required');
+      return;
+    }
+
+    // Block submission if symptoms were changed but not re-evaluated
+    if (symptomsChanged) {
+      setSymptomsError('Please re-evaluate the specialty before submitting');
+      return;
+    }
+
+    // Block submission if PII was detected and not resolved
+    if (piiCheckResult?.containsPII) {
+      setSymptomsError('Please remove all personally identifiable information before submitting');
+      setShowPiiWarning(true);
       return;
     }
 
@@ -120,10 +137,14 @@ export function FormReview({ onBack, onSubmit, clinicianData, chatData }: FormRe
   };
 
   const handleSymptomsChange = (value: string) => {
-    setSymptoms(value);
-    setSymptomsChanged(value !== originalSymptoms);
-    if (symptomsError) {
-      setSymptomsError('');
+    if (value.length <= MAX_SYMPTOMS_LENGTH) {
+      setSymptoms(value);
+      setSymptomsChanged(value !== originalSymptoms);
+      setShowPiiWarning(false); // Hide PII warning when user starts editing
+      setPiiCheckResult(null); // Clear previous PII check
+      if (symptomsError) {
+        setSymptomsError('');
+      }
     }
   };
 
@@ -134,8 +155,42 @@ export function FormReview({ onBack, onSubmit, clinicianData, chatData }: FormRe
     }
 
     setIsReEvaluating(true);
+    setShowPiiWarning(false);
     
     try {
+      // First, check for PII
+      console.log('🔍 Checking for PII in symptoms...');
+      
+      const piiResponse = await fetch('/api/chatbot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'check_pii',
+          data: {
+            text: symptoms
+          },
+        }),
+      });
+      
+      if (!piiResponse.ok) {
+        const errorText = await piiResponse.text();
+        console.error('PII check response error:', errorText);
+        throw new Error(`PII check failed: ${piiResponse.status} ${errorText}`);
+      }
+      
+      const piiResult = await piiResponse.json();
+      console.log('✅ PII check result:', piiResult);
+      
+      setPiiCheckResult(piiResult);
+      
+      // If PII is detected, block re-evaluation and show warning
+      if (piiResult.containsPII) {
+        setShowPiiWarning(true);
+        setSymptomsError('Personally identifiable information detected. Please remove it before proceeding.');
+        return;
+      }
+      
+      // No PII detected, proceed with re-evaluation
       console.log('🔄 Re-evaluating specialty with updated symptoms...');
       
       const classifyResponse = await fetch('/api/chatbot', {
@@ -289,24 +344,80 @@ export function FormReview({ onBack, onSubmit, clinicianData, chatData }: FormRe
               }`}
               placeholder="Describe the patient's symptoms, condition, and any relevant medical history. Please avoid including any personally identifiable information."
             />
-            {symptomsError && <p className="text-red-500 text-xs mt-1">{symptomsError}</p>}
+            <div className="flex justify-between items-center mt-1">
+              {symptomsError && <p className="text-red-500 text-xs">{symptomsError}</p>}
+              <span className={`text-xs ml-auto ${symptoms.length > MAX_SYMPTOMS_LENGTH * 0.9 ? 'text-wti-red' : 'text-gray-500'}`}>
+                {symptoms.length} / {MAX_SYMPTOMS_LENGTH}
+              </span>
+            </div>
+            
+            {/* PII Warning */}
+            {showPiiWarning && piiCheckResult?.containsPII && (
+              <div className="mt-4 p-4 bg-red-50 border-2 border-red-500 rounded-lg">
+                <div className="flex gap-3">
+                  <div className="shrink-0">
+                    <svg className="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path 
+                        fillRule="evenodd" 
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" 
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-red-800 mb-2">
+                      Personally Identifiable Information Detected
+                    </p>
+                    <p className="text-xs text-red-700 mb-3">
+                      {piiCheckResult.recommendation}
+                    </p>
+                    {piiCheckResult.piiFound && piiCheckResult.piiFound.length > 0 && (
+                      <div className="mb-3">
+                        <p className="text-xs font-medium text-red-800 mb-1">PII Types Found:</p>
+                        <ul className="list-disc list-inside text-xs text-red-700 space-y-1">
+                          {piiCheckResult.piiFound.map((type: string, index: number) => (
+                            <li key={index}>{type}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {piiCheckResult.piiDetails && piiCheckResult.piiDetails.length > 0 && (
+                      <div className="mb-3">
+                        <p className="text-xs font-medium text-red-800 mb-1">Details:</p>
+                        <ul className="space-y-2">
+                          {piiCheckResult.piiDetails.map((detail: any, index: number) => (
+                            <li key={index} className="text-xs text-red-700">
+                              <span className="font-medium">{detail.type}:</span> {detail.location}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <p className="text-xs text-red-700 font-medium">
+                      Please remove or generalize this information and try again.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            </div>
             
             {/* Re-evaluate Button - Shows when symptoms are changed */}
             {symptomsChanged && (
-              <div className="mt-4 p-4 bg-wti-teal bg-opacity-10 border border-wti-teal border-opacity-30 rounded-lg">
+              <div className="mt-4 p-4 bg-yellow-50 border-2 border-yellow-500 rounded-lg">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium text-white mb-1">
-                      Symptoms Updated
+                    <p className="text-sm font-medium text-yellow-800 mb-1">
+                      Symptoms Updated - Re-evaluation Required
                     </p>
-                    <p className="text-xs text-gray-200">
-                      Re-evaluate to get updated specialty recommendations based on the new symptoms.
+                    <p className="text-xs text-yellow-700">
+                      Please re-evaluate to get updated specialty recommendations before submitting.
                     </p>
                   </div>
                   <button
                     onClick={handleReEvaluate}
                     disabled={isReEvaluating}
-                    className="px-4 py-2 bg-wti-teal text-white rounded-lg hover:bg-wti-dark-teal disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2 text-sm font-medium whitespace-nowrap"
+                    className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2 text-sm font-medium whitespace-nowrap"
                   >
                     {isReEvaluating ? (
                       <>
@@ -314,7 +425,7 @@ export function FormReview({ onBack, onSubmit, clinicianData, chatData }: FormRe
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        Re-evaluating...
+                        Checking & Re-evaluating...
                       </>
                     ) : (
                       <>
@@ -334,7 +445,7 @@ export function FormReview({ onBack, onSubmit, clinicianData, chatData }: FormRe
                           <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
                           <path d="M3 21v-5h5"></path>
                         </svg>
-                        Re-evaluate Specialty
+                        Re-evaluate
                       </>
                     )}
                   </button>
@@ -342,66 +453,67 @@ export function FormReview({ onBack, onSubmit, clinicianData, chatData }: FormRe
               </div>
             )}
           </div>
-        </div>
 
-        {/* Privacy Notice */}
-        <div className="bg-wti-teal bg-opacity-10 border border-wti-teal border-opacity-30 rounded-lg p-4 mb-6">
-          <div className="flex gap-3">
-            <div className="shrink-0">
-              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path 
-                  fillRule="evenodd" 
-                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" 
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
-            <div className="text-sm">
-              <p className="text-white mb-1">
-                <strong>Privacy & Data Security</strong>
-              </p>
-              <p className="text-gray-200 text-xs">
-                All patient information is handled in compliance with HIPAA standards and international data protection regulations. Data is encrypted and shared only with matched specialists.
-              </p>
+          {/* Privacy Notice */}
+          <div className="bg-wti-teal bg-opacity-10 border border-wti-teal border-opacity-30 rounded-lg p-4 mb-6">
+            <div className="flex gap-3">
+              <div className="shrink-0">
+                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path 
+                    fillRule="evenodd" 
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" 
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <div className="text-sm">
+                <p className="text-white mb-1">
+                  <strong>Privacy & Data Security</strong>
+                </p>
+                <p className="text-gray-200 text-xs">
+                  All patient information is handled in compliance with HIPAA standards and international data protection regulations. Data is encrypted and shared only with matched specialists.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Submit Button */}
-        <button
-          onClick={handleSubmit}
-          disabled={isLoading}
-          className="w-full py-4 px-6 rounded-full bg-wti-red text-white hover:bg-wti-red-hover active:scale-98 transition-all duration-200 shadow-md hover:shadow-lg min-h-[56px] flex items-center justify-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isLoading ? (
-            <>
-              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Submitting Request...
-            </>
-          ) : (
-            <>
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width="24" 
-                height="24" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                className="w-5 h-5"
-              >
-                <path d="M20 6 9 17l-5-5"></path>
-              </svg>
-              Submit Request
-            </>
-          )}
-        </button>
+          {/* Submit Button */}
+          <button
+            onClick={handleSubmit}
+            disabled={isLoading || symptomsChanged || (piiCheckResult?.containsPII)}
+            className="w-full py-4 px-6 rounded-full bg-wti-red text-white hover:bg-wti-red-hover active:scale-98 transition-all duration-200 shadow-md hover:shadow-lg min-h-[56px] flex items-center justify-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            title={symptomsChanged ? 'Please re-evaluate before submitting' : piiCheckResult?.containsPII ? 'Please remove PII before submitting' : ''}
+          >
+            {isLoading ? (
+              <>
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Submitting Request...
+              </>
+            ) : (
+              <>
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  width="24" 
+                  height="24" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  className="w-5 h-5"
+                >
+                  <path d="M20 6 9 17l-5-5"></path>
+                </svg>
+                Submit Request
+              </>
+            )}
+          </button>
+
+        </div>
       </div>
-    </div>
   );
 }

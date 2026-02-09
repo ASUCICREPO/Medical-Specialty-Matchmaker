@@ -92,6 +92,7 @@ export class MSMBackendStack extends cdk.Stack {
         allowMethods: ['GET', 'POST', 'OPTIONS'],
         allowHeaders: ['Content-Type', 'X-API-Key'],
         allowCredentials: false,
+        maxAge: cdk.Duration.hours(1),
       },
     });
 

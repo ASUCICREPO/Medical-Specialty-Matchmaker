@@ -287,6 +287,8 @@ def lambda_handler(event, context):
             return handle_chat_conversation(data, request_origin)
         elif action == 'classify':
             return handle_specialty_classification(data, request_origin)
+        elif action == 'check_pii':
+            return handle_pii_check(data, request_origin)
         else:
             return create_response(400, {'error': 'Invalid action'}, request_origin)
             
@@ -818,6 +820,166 @@ Respond ONLY with a JSON object in this exact format:
     except Exception as e:
         logger.error(f"Bedrock classification error: {str(e)}")
         raise Exception(f"Bedrock classification failed: {str(e)}")  # No fallback!
+
+def handle_pii_check(data: Dict, request_origin: Optional[str] = None) -> Dict:
+    """
+    Check text for Personally Identifiable Information (PII)
+    """
+    try:
+        text = data.get('text', '')
+        
+        if not text:
+            return create_response(400, {'error': 'Text is required for PII check'}, request_origin)
+        
+        logger.info(f"Checking text for PII (length: {len(text)})")
+        
+        # Use Bedrock to detect PII
+        pii_result = detect_pii_with_bedrock(text)
+        
+        return create_response(200, pii_result, request_origin)
+        
+    except Exception as e:
+        logger.error(f"Error in handle_pii_check: {str(e)}")
+        return create_response(500, {
+            'error': 'PII check failed',
+            'message': str(e)
+        }, request_origin)
+
+def detect_pii_with_bedrock(text: str) -> Dict:
+    """
+    Use Bedrock to detect PII in text
+    """
+    try:
+        prompt = f"""You are a PII (Personally Identifiable Information) detection expert for medical records.
+
+Analyze the following text and identify ANY personally identifiable information that should be removed before storing in a database.
+
+Text to analyze:
+{text}
+
+PII CATEGORIES TO DETECT:
+1) Names;
+2) All geographic subdivisions smaller than a State, including street address, city, county, precinct, zip code, and their equivalent geocodes, except for the initial three digits of a zip code if, according to the current publicly available data from the Bureau of the Census:
+2.1) The geographic unit formed by combining all zip codes with the same three initial digits contains more than 20,000 people; and
+2.2) The initial three digits of a zip code for all such geographic units containing 20,000 or fewer people is changed to 000.
+3) All elements of dates (except year) for dates directly related to an individual, including birth date, admission date, discharge date, date of death; and all ages over 89 and all elements of dates (including year) indicative of such age, except that such ages and elements may be aggregated into a single category of age 90 or older;
+4) Telephone numbers;
+5) Fax numbers;
+6) Electronic mail addresses;
+7) Social security numbers;
+8) Medical record numbers;
+9) Health plan beneficiary numbers;
+10) Account numbers;
+11) Certificate/license numbers;
+12) Vehicle identifiers and serial numbers, including license plate numbers;
+13) Device identifiers and serial numbers;
+14) Web Universal Resource Locators (URLs);
+15) Internet Protocol (IP) address numbers;
+16) Biometric identifiers, including finger and voice prints;
+17) Full face photographic images and any comparable images; and
+18) Any other unique identifying number, characteristic, or code, except as permitted above
+
+
+ALLOWED (NOT PII):
+- General age ranges (e.g., "5-year-old", "elderly", "middle-aged")
+- General locations (e.g., "rural area", "urban setting", state names)
+- Medical conditions and symptoms
+- General medical history without identifying details
+- Treatment descriptions
+- Clinical observations
+
+Respond ONLY with a JSON object:
+{{
+    "containsPII": true/false,
+    "piiFound": ["list of PII types found"],
+    "piiDetails": [
+        {{
+            "type": "PII category",
+            "value": "the actual PII found (or partial)",
+            "location": "brief context where it was found"
+        }}
+    ],
+    "recommendation": "Brief suggestion on what to remove or generalize",
+    "severity": "low/medium/high"
+}}
+
+If no PII is found, return containsPII: false with empty arrays."""
+
+        payload = {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "text": prompt
+                        }
+                    ]
+                }
+            ],
+            "inferenceConfig": {
+                "max_new_tokens": 1500,
+                "temperature": 0.1,
+                "top_p": 0.9
+            }
+        }
+        
+        logger.info(f"Calling Bedrock for PII detection...")
+        
+        response = bedrock.invoke_model(
+            modelId='us.amazon.nova-2-lite-v1:0',
+            contentType='application/json',
+            accept='application/json',
+            body=json.dumps(payload)
+        )
+        
+        raw_response_body = response['body'].read()
+        response_body = json.loads(raw_response_body)
+        
+        if 'output' in response_body:
+            bedrock_response = response_body['output']['message']['content'][0]['text']
+        else:
+            bedrock_response = response_body['content'][0]['text']
+        
+        logger.info(f"PII detection response: {bedrock_response}")
+        
+        # Parse JSON response
+        try:
+            json_match = re.search(r'\{[\s\S]*\}', bedrock_response)
+            if json_match:
+                json_str = json_match.group(0)
+                result = json.loads(json_str)
+            else:
+                result = json.loads(bedrock_response)
+            
+            logger.info(f"PII detection result: {result}")
+            return result
+            
+        except (json.JSONDecodeError, KeyError, ValueError) as e:
+            logger.error(f"Failed to parse PII detection response: {e}")
+            logger.error(f"Raw response: {bedrock_response}")
+            # Return safe default - assume PII might be present
+            return {
+                'containsPII': True,
+                'piiFound': ['Unknown'],
+                'piiDetails': [],
+                'recommendation': 'Unable to verify PII status. Please review manually.',
+                'severity': 'medium',
+                'error': str(e)
+            }
+        
+    except Exception as e:
+        logger.error(f"PII detection error: {str(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        # Return safe default
+        return {
+            'containsPII': True,
+            'piiFound': ['Unknown'],
+            'piiDetails': [],
+            'recommendation': 'PII check failed. Please review manually.',
+            'severity': 'high',
+            'error': str(e)
+        }
 
 def create_response(status_code: int, body: Dict, request_origin: Optional[str] = None) -> Dict:
     """

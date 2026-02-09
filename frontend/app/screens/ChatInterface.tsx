@@ -42,6 +42,8 @@ export function ChatInterface({ onBack, onNext }: ChatInterfaceProps) {
   const [showAgeButtons, setShowAgeButtons] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  const MAX_CHAT_INPUT_LENGTH = 2000;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -309,7 +311,12 @@ export function ChatInterface({ onBack, onNext }: ChatInterfaceProps) {
                 <textarea
                   ref={textareaRef}
                   value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value.length <= MAX_CHAT_INPUT_LENGTH) {
+                      setInputValue(value);
+                    }
+                  }}
                   onKeyDown={handleKeyPress}
                   placeholder={
                     !ageGroupSelected 
