@@ -5,9 +5,12 @@
 
 export const config = {
   api: {
-    chatbotUrl: process.env.AWS_API_URL || process.env.NEXT_PUBLIC_API_URL || '',
-    dataUrl: process.env.AWS_DATA_URL || process.env.NEXT_PUBLIC_DATA_URL || '',
-    apiKey: process.env.AWS_API_KEY || process.env.NEXT_PUBLIC_API_KEY || '',
+    // For client-side: Use NEXT_PUBLIC_ prefixed variables (URLs only, no secrets)
+    // For server-side: Use non-prefixed variables (can include API keys)
+    chatbotUrl: process.env.NEXT_PUBLIC_API_URL || '',
+    dataUrl: process.env.NEXT_PUBLIC_DATA_URL || '',
+    // API Key should ONLY be accessed server-side, never exposed to browser
+    apiKey: process.env.AWS_API_KEY || '',
   },
 } as const;
 
@@ -19,13 +22,13 @@ export function validateConfig() {
   const missing: string[] = [];
 
   if (!config.api.chatbotUrl) {
-    missing.push('AWS_API_URL or NEXT_PUBLIC_API_URL');
+    missing.push('NEXT_PUBLIC_API_URL');
   }
   if (!config.api.dataUrl) {
-    missing.push('AWS_DATA_URL or NEXT_PUBLIC_DATA_URL');
+    missing.push('NEXT_PUBLIC_DATA_URL');
   }
   if (!config.api.apiKey) {
-    missing.push('AWS_API_KEY or NEXT_PUBLIC_API_KEY');
+    missing.push('AWS_API_KEY');
   }
 
   if (missing.length > 0) {
