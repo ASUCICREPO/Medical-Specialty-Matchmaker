@@ -290,13 +290,40 @@ cd ../frontend
 
 # Create .env file with API endpoints and API key
 cat > .env << EOF
+# API Gateway URLs (safe to expose to browser)
 NEXT_PUBLIC_API_URL=$CHATBOT_ENDPOINT
 NEXT_PUBLIC_DATA_URL=$DATA_ENDPOINT
-NEXT_PUBLIC_API_KEY=$API_KEY_VALUE
+
+# API Key (server-side only - NEVER exposed to browser)
+AWS_API_KEY=$API_KEY_VALUE
 EOF
 
 print_success "Frontend environment configured"
 print_status "Created frontend/.env file with API endpoints and API key"
+
+# Configure Amplify environment variables
+if [ -n "$AMPLIFY_APP_ID" ] && [ "$AMPLIFY_APP_ID" != "None" ]; then
+  print_status "Configuring Amplify environment variables..."
+  
+  aws amplify update-app \
+    --app-id "$AMPLIFY_APP_ID" \
+    --region "$AWS_REGION" \
+    --environment-variables \
+      NEXT_PUBLIC_API_URL="$CHATBOT_ENDPOINT" \
+      NEXT_PUBLIC_DATA_URL="$DATA_ENDPOINT" \
+      AWS_API_KEY="$API_KEY_VALUE" \
+    > /dev/null 2>&1
+  
+  if [ $? -eq 0 ]; then
+    print_success "Amplify environment variables configured"
+  else
+    print_warning "Could not configure Amplify environment variables automatically"
+    echo "Please set them manually in Amplify Console:"
+    echo "  NEXT_PUBLIC_API_URL=$CHATBOT_ENDPOINT"
+    echo "  NEXT_PUBLIC_DATA_URL=$DATA_ENDPOINT"
+    echo "  AWS_API_KEY=$API_KEY_VALUE"
+  fi
+fi
 
 cd ..
 
