@@ -265,23 +265,26 @@ def lambda_handler(event, context):
     try:
         logger.info(f"Received event: {json.dumps(event)}")
         
+        # Get the origin from the request for CORS validation
+        request_origin = event.get('headers', {}).get('origin') or event.get('headers', {}).get('Origin')
+        
         # Parse the request
         body = json.loads(event.get('body', '{}'))
         action = body.get('action')
         data = body.get('data', {})
         
         if action == 'chat':
-            return handle_chat_conversation(data)
+            return handle_chat_conversation(data, request_origin)
         elif action == 'classify':
-            return handle_specialty_classification(data)
+            return handle_specialty_classification(data, request_origin)
         else:
-            return create_response(400, {'error': 'Invalid action'})
+            return create_response(400, {'error': 'Invalid action'}, request_origin)
             
     except Exception as e:
         logger.error(f"Error in lambda_handler: {str(e)}")
-        return create_response(500, {'error': 'Internal server error'})
+        return create_response(500, {'error': 'Internal server error'}, None)
 
-def handle_chat_conversation(data: Dict) -> Dict:
+def handle_chat_conversation(data: Dict, request_origin: Optional[str] = None) -> Dict:
     """
     Handle conversational chat to gather patient information and extract structured data
     """
@@ -326,14 +329,14 @@ def handle_chat_conversation(data: Dict) -> Dict:
                 result['currentConfidence'] = confidence
                 result['confidenceTarget'] = 0.70
         
-        return create_response(200, result)
+        return create_response(200, result, request_origin)
         
     except Exception as e:
         logger.error(f"Error in handle_chat_conversation: {str(e)}")
         return create_response(500, {
             'error': 'Chat processing failed',
             'message': str(e)
-        })
+        }, request_origin)
 
 def extract_and_classify_from_conversation(conversation_history: List[Dict]) -> Dict:
     """
@@ -535,7 +538,7 @@ If canClassify is false, set classification to null."""
         logger.error(f"Traceback: {traceback.format_exc()}")
         return {'canClassify': False, 'error': str(e)}
 
-def handle_specialty_classification(data: Dict) -> Dict:
+def handle_specialty_classification(data: Dict, request_origin: Optional[str] = None) -> Dict:
     """
     Handle medical specialty classification - BEDROCK ONLY
     """
@@ -549,7 +552,7 @@ def handle_specialty_classification(data: Dict) -> Dict:
         # Use Bedrock for intelligent classification - NO FALLBACK
         classification = classify_with_bedrock(symptoms, age_group, urgency)
         
-        return create_response(200, classification)
+        return create_response(200, classification, request_origin)
         
     except Exception as e:
         logger.error(f"Error in handle_specialty_classification: {str(e)}")
@@ -557,7 +560,7 @@ def handle_specialty_classification(data: Dict) -> Dict:
             'error': 'Classification failed',
             'message': str(e),
             'details': 'Bedrock classification is required but failed'
-        })
+        }, request_origin)
 
 def build_conversation_context(conversation_history: List[Dict], current_message: str) -> str:
     """
@@ -806,17 +809,46 @@ Respond ONLY with a JSON object in this exact format:
         logger.error(f"Bedrock classification error: {str(e)}")
         raise Exception(f"Bedrock classification failed: {str(e)}")  # No fallback!
 
-def create_response(status_code: int, body: Dict) -> Dict:
+def create_response(status_code: int, body: Dict, request_origin: Optional[str] = None) -> Dict:
     """
-    Create standardized API response
+    Create standardized API response with secure CORS headers
+    
+    Args:
+        status_code: HTTP status code
+        body: Response body dictionary
+        request_origin: The Origin header from the incoming request
+    
+    Returns:
+        API Gateway response with appropriate CORS headers
     """
+    # Get allowed origins from environment variable
+    allowed_origins_str = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000')
+    allowed_origins = [origin.strip() for origin in allowed_origins_str.split(',')]
+    
+    # Determine which origin to return in the header
+    # CORS spec only allows a single origin in Access-Control-Allow-Origin
+    if request_origin and request_origin in allowed_origins:
+        # Request is from an allowed origin - return that specific origin
+        origin = request_origin
+        logger.info(f"CORS: Allowing origin {origin}")
+    elif len(allowed_origins) == 1:
+        # Only one allowed origin - use it
+        origin = allowed_origins[0]
+    else:
+        # Multiple allowed origins but no matching request origin
+        # Use the first one (typically production URL)
+        origin = allowed_origins[0]
+        if request_origin:
+            logger.warning(f"CORS: Request from unauthorized origin {request_origin}. Allowed: {allowed_origins}")
+    
     return {
         'statusCode': status_code,
         'headers': {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Origin': origin,
             'Access-Control-Allow-Headers': 'Content-Type',
-            'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            'Access-Control-Allow-Methods': 'OPTIONS,POST,GET',
+            'Vary': 'Origin'  # Important for caching with multiple allowed origins
         },
         'body': json.dumps(body)
     }

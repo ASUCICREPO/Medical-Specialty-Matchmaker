@@ -236,16 +236,28 @@ print_status "Phase 6: Configuring Environment Files..."
 # Configure backend .env file
 cd backend
 
+# Determine allowed origins
+if [ -n "$AMPLIFY_URL" ] && [ "$AMPLIFY_URL" != "None" ]; then
+  ALLOWED_ORIGINS="$AMPLIFY_URL,http://localhost:3000"
+else
+  ALLOWED_ORIGINS="http://localhost:3000"
+fi
+
 cat > .env << EOF
 # AWS Account ID (12-digit number)
 CDK_DEFAULT_ACCOUNT=$AWS_ACCOUNT_ID
 
 # AWS Region (e.g., us-east-1, us-west-2, eu-west-1)
 CDK_DEFAULT_REGION=$AWS_REGION
+
+# CORS Configuration (Security)
+# Comma-separated list of allowed origins for API requests
+ALLOWED_ORIGINS=$ALLOWED_ORIGINS
 EOF
 
 print_success "Backend environment configured"
 print_status "Created backend/.env file with CDK environment variables"
+print_status "CORS allowed origins: $ALLOWED_ORIGINS"
 
 cd ../frontend
 

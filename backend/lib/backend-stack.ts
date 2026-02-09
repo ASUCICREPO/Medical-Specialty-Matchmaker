@@ -11,6 +11,11 @@ export class MSMBackendStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
+    // Get allowed origins from environment or use localhost for development
+    const allowedOrigins = process.env.ALLOWED_ORIGINS 
+      ? process.env.ALLOWED_ORIGINS.split(',')
+      : ['http://localhost:3000']; // Default for local development
+
     // DynamoDB table for storing medical requests
     const medicalRequestsTable = new dynamodb.Table(this, 'MedicalRequestsTable', {
       tableName: 'medical-requests',
@@ -26,7 +31,8 @@ export class MSMBackendStack extends cdk.Stack {
       code: lambda.Code.fromAsset('lambda'),
       environment: {
         REQUESTS_TABLE: medicalRequestsTable.tableName,
-        BEDROCK_REGION: this.region
+        BEDROCK_REGION: this.region,
+        ALLOWED_ORIGINS: allowedOrigins.join(',')
       },
       timeout: cdk.Duration.seconds(60),  // Increased from 30 to 60 seconds
       memorySize: 1024,  // Increased from 512 to 1024 MB for better performance
@@ -39,6 +45,7 @@ export class MSMBackendStack extends cdk.Stack {
       code: lambda.Code.fromAsset('lambda'),
       environment: {
         REQUESTS_TABLE: medicalRequestsTable.tableName,
+        ALLOWED_ORIGINS: allowedOrigins.join(',')
       },
       timeout: cdk.Duration.seconds(30),
       memorySize: 256,
@@ -81,9 +88,10 @@ export class MSMBackendStack extends cdk.Stack {
       restApiName: 'Medical Specialty Matchmaker API',
       description: 'API for medical specialty matching chatbot',
       defaultCorsPreflightOptions: {
-        allowOrigins: apigateway.Cors.ALL_ORIGINS,
-        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowOrigins: allowedOrigins,
+        allowMethods: ['GET', 'POST', 'OPTIONS'],
         allowHeaders: ['Content-Type', 'Authorization'],
+        allowCredentials: false,
       },
     });
 
@@ -189,6 +197,11 @@ applications:
     new cdk.CfnOutput(this, 'AmplifyConsoleUrl', {
       value: `https://console.aws.amazon.com/amplify/home?region=${this.region}#/${amplifyApp.attrAppId}`,
       description: 'Amplify Console URL',
+    });
+
+    new cdk.CfnOutput(this, 'AllowedOrigins', {
+      value: allowedOrigins.join(','),
+      description: 'Allowed CORS Origins',
     });
   }
 }

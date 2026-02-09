@@ -21,25 +21,28 @@ def lambda_handler(event, context):
     try:
         logger.info(f"Received event: {json.dumps(event)}")
         
+        # Get the origin from the request for CORS validation
+        request_origin = event.get('headers', {}).get('origin') or event.get('headers', {}).get('Origin')
+        
         # Parse the request
         body = json.loads(event.get('body', '{}'))
         action = body.get('action')
         data = body.get('data', {})
         
         if action == 'submit':
-            return handle_submit_request(data)
+            return handle_submit_request(data, request_origin)
         elif action == 'get':
-            return handle_get_request(data)
+            return handle_get_request(data, request_origin)
         elif action == 'list':
-            return handle_list_requests(data)
+            return handle_list_requests(data, request_origin)
         else:
-            return create_response(400, {'error': 'Invalid action'})
+            return create_response(400, {'error': 'Invalid action'}, request_origin)
             
     except Exception as e:
         logger.error(f"Error in lambda_handler: {str(e)}")
-        return create_response(500, {'error': 'Internal server error', 'message': str(e)})
+        return create_response(500, {'error': 'Internal server error', 'message': str(e)}, None)
 
-def handle_submit_request(data: dict) -> dict:
+def handle_submit_request(data: dict, request_origin: str = None) -> dict:
     """
     Store medical request in DynamoDB
     """
@@ -79,13 +82,13 @@ def handle_submit_request(data: dict) -> dict:
             'id': request_id,
             'message': 'Request submitted successfully',
             'timestamp': timestamp.isoformat()
-        })
+        }, request_origin)
         
     except Exception as e:
         logger.error(f"Error in handle_submit_request: {str(e)}")
         raise
 
-def handle_get_request(data: dict) -> dict:
+def handle_get_request(data: dict, request_origin: str = None) -> dict:
     """
     Retrieve a specific medical request from DynamoDB
     """
@@ -93,12 +96,12 @@ def handle_get_request(data: dict) -> dict:
         request_id = data.get('id')
         
         if not request_id:
-            return create_response(400, {'error': 'Request ID is required'})
+            return create_response(400, {'error': 'Request ID is required'}, request_origin)
         
         response = table.get_item(Key={'id': request_id})
         
         if 'Item' not in response:
-            return create_response(404, {'error': 'Request not found'})
+            return create_response(404, {'error': 'Request not found'}, request_origin)
         
         # Convert Decimal to float for JSON serialization
         item = convert_decimals(response['Item'])
@@ -106,13 +109,13 @@ def handle_get_request(data: dict) -> dict:
         return create_response(200, {
             'success': True,
             'request': item
-        })
+        }, request_origin)
         
     except Exception as e:
         logger.error(f"Error in handle_get_request: {str(e)}")
         raise
 
-def handle_list_requests(data: dict) -> dict:
+def handle_list_requests(data: dict, request_origin: str = None) -> dict:
     """
     List medical requests with optional filtering
     """
@@ -142,7 +145,7 @@ def handle_list_requests(data: dict) -> dict:
         
         if filter_expressions:
             scan_kwargs['FilterExpression'] = ' AND '.join(filter_expressions)
-            scan_kwargs['ExpressionAttributeValues'] = expression_attribute_values
+            scan_kwargs['ExpressionAttributeValues'] = expression_attribute_values--
         
         # Scan table
         response = table.scan(**scan_kwargs)
@@ -158,7 +161,7 @@ def handle_list_requests(data: dict) -> dict:
             'success': True,
             'requests': items,
             'count': len(items)
-        })
+        }, request_origin)
         
     except Exception as e:
         logger.error(f"Error in handle_list_requests: {str(e)}")
@@ -185,17 +188,46 @@ def convert_decimals(obj):
     else:
         return obj
 
-def create_response(status_code: int, body: dict) -> dict:
+def create_response(status_code: int, body: dict, request_origin: str = None) -> dict:
     """
-    Create standardized API response
+    Create standardized API response with secure CORS headers
+    
+    Args:
+        status_code: HTTP status code
+        body: Response body dictionary
+        request_origin: The Origin header from the incoming request
+    
+    Returns:
+        API Gateway response with appropriate CORS headers
     """
+    # Get allowed origins from environment variable
+    allowed_origins_str = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000')
+    allowed_origins = [origin.strip() for origin in allowed_origins_str.split(',')]
+    
+    # Determine which origin to return in the header
+    # CORS spec only allows a single origin in Access-Control-Allow-Origin
+    if request_origin and request_origin in allowed_origins:
+        # Request is from an allowed origin - return that specific origin
+        origin = request_origin
+        logger.info(f"CORS: Allowing origin {origin}")
+    elif len(allowed_origins) == 1:
+        # Only one allowed origin - use it
+        origin = allowed_origins[0]
+    else:
+        # Multiple allowed origins but no matching request origin
+        # Use the first one (typically production URL)
+        origin = allowed_origins[0]
+        if request_origin:
+            logger.warning(f"CORS: Request from unauthorized origin {request_origin}. Allowed: {allowed_origins}")
+    
     return {
         'statusCode': status_code,
         'headers': {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Origin': origin,
             'Access-Control-Allow-Headers': 'Content-Type',
-            'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            'Access-Control-Allow-Methods': 'OPTIONS,POST,GET',
+            'Vary': 'Origin'  # Important for caching with multiple allowed origins
         },
         'body': json.dumps(body)
     }
