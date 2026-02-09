@@ -10,7 +10,8 @@ export const config = {
     chatbotUrl: process.env.NEXT_PUBLIC_API_URL || '',
     dataUrl: process.env.NEXT_PUBLIC_DATA_URL || '',
     // API Key should ONLY be accessed server-side, never exposed to browser
-    apiKey: process.env.AWS_API_KEY || '',
+    // Note: Cannot use AWS_ prefix in Amplify, so using API_KEY instead
+    apiKey: process.env.API_KEY || '',
   },
 } as const;
 
@@ -28,7 +29,7 @@ export function validateConfig() {
     missing.push('NEXT_PUBLIC_DATA_URL');
   }
   if (!config.api.apiKey) {
-    missing.push('AWS_API_KEY');
+    missing.push('API_KEY');
   }
 
   if (missing.length > 0) {

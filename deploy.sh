@@ -295,7 +295,8 @@ NEXT_PUBLIC_API_URL=$CHATBOT_ENDPOINT
 NEXT_PUBLIC_DATA_URL=$DATA_ENDPOINT
 
 # API Key (server-side only - NEVER exposed to browser)
-AWS_API_KEY=$API_KEY_VALUE
+# Note: Cannot use AWS_ prefix in Amplify
+API_KEY=$API_KEY_VALUE
 EOF
 
 print_success "Frontend environment configured"
@@ -311,7 +312,7 @@ if [ -n "$AMPLIFY_APP_ID" ] && [ "$AMPLIFY_APP_ID" != "None" ]; then
     --environment-variables \
       NEXT_PUBLIC_API_URL="$CHATBOT_ENDPOINT" \
       NEXT_PUBLIC_DATA_URL="$DATA_ENDPOINT" \
-      AWS_API_KEY="$API_KEY_VALUE" \
+      API_KEY="$API_KEY_VALUE" \
     > /dev/null 2>&1
   
   if [ $? -eq 0 ]; then
@@ -321,7 +322,7 @@ if [ -n "$AMPLIFY_APP_ID" ] && [ "$AMPLIFY_APP_ID" != "None" ]; then
     echo "Please set them manually in Amplify Console:"
     echo "  NEXT_PUBLIC_API_URL=$CHATBOT_ENDPOINT"
     echo "  NEXT_PUBLIC_DATA_URL=$DATA_ENDPOINT"
-    echo "  AWS_API_KEY=$API_KEY_VALUE"
+    echo "  API_KEY=$API_KEY_VALUE"
   fi
 fi
 
