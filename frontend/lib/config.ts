@@ -7,6 +7,7 @@ export const config = {
   api: {
     chatbotUrl: process.env.AWS_API_URL || process.env.NEXT_PUBLIC_API_URL || '',
     dataUrl: process.env.AWS_DATA_URL || process.env.NEXT_PUBLIC_DATA_URL || '',
+    apiKey: process.env.AWS_API_KEY || process.env.NEXT_PUBLIC_API_KEY || '',
   },
 } as const;
 
@@ -22,6 +23,9 @@ export function validateConfig() {
   }
   if (!config.api.dataUrl) {
     missing.push('AWS_DATA_URL or NEXT_PUBLIC_DATA_URL');
+  }
+  if (!config.api.apiKey) {
+    missing.push('AWS_API_KEY or NEXT_PUBLIC_API_KEY');
   }
 
   if (missing.length > 0) {

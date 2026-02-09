@@ -195,6 +195,7 @@ if [ -f "cdk-outputs.json" ]; then
   DATA_ENDPOINT=$(cat cdk-outputs.json | grep -o '"DataEndpoint": "[^"]*' | cut -d'"' -f4)
   AMPLIFY_APP_ID=$(cat cdk-outputs.json | grep -o '"AmplifyAppId": "[^"]*' | cut -d'"' -f4)
   AMPLIFY_URL=$(cat cdk-outputs.json | grep -o '"AmplifyAppUrl": "[^"]*' | cut -d'"' -f4)
+  API_KEY_ID=$(cat cdk-outputs.json | grep -o '"ApiKeyId": "[^"]*' | cut -d'"' -f4)
 fi
 
 # Fallback to CloudFormation if outputs file parsing fails
@@ -224,6 +225,32 @@ if [ -z "$API_GATEWAY_URL" ]; then
     --stack-name "$STACK_NAME" \
     --query "Stacks[0].Outputs[?OutputKey=='AmplifyAppUrl'].OutputValue" \
     --output text --region "$AWS_REGION")
+  
+  API_KEY_ID=$(aws cloudformation describe-stacks \
+    --stack-name "$STACK_NAME" \
+    --query "Stacks[0].Outputs[?OutputKey=='ApiKeyId'].OutputValue" \
+    --output text --region "$AWS_REGION")
+fi
+
+# Retrieve the actual API Key value
+print_status "Retrieving API Key..."
+if [ -n "$API_KEY_ID" ] && [ "$API_KEY_ID" != "None" ]; then
+  API_KEY_VALUE=$(aws apigateway get-api-key \
+    --api-key "$API_KEY_ID" \
+    --include-value \
+    --query 'value' \
+    --output text \
+    --region "$AWS_REGION" 2>/dev/null)
+  
+  if [ -n "$API_KEY_VALUE" ] && [ "$API_KEY_VALUE" != "None" ]; then
+    print_success "API Key retrieved successfully"
+  else
+    print_warning "Could not retrieve API Key value. You may need to retrieve it manually."
+    API_KEY_VALUE="<RETRIEVE_FROM_AWS_CONSOLE>"
+  fi
+else
+  print_warning "API Key ID not found in outputs"
+  API_KEY_VALUE="<RETRIEVE_FROM_AWS_CONSOLE>"
 fi
 
 print_success "Deployment outputs extracted"
@@ -261,14 +288,15 @@ print_status "CORS allowed origins: $ALLOWED_ORIGINS"
 
 cd ../frontend
 
-# Create .env file with API endpoints
+# Create .env file with API endpoints and API key
 cat > .env << EOF
 NEXT_PUBLIC_API_URL=$CHATBOT_ENDPOINT
 NEXT_PUBLIC_DATA_URL=$DATA_ENDPOINT
+NEXT_PUBLIC_API_KEY=$API_KEY_VALUE
 EOF
 
 print_success "Frontend environment configured"
-print_status "Created frontend/.env file with API endpoints"
+print_status "Created frontend/.env file with API endpoints and API key"
 
 cd ..
 
@@ -355,6 +383,13 @@ echo "Backend Resources:"
 echo "  API Gateway URL: $API_GATEWAY_URL"
 echo "  Chatbot Endpoint: $CHATBOT_ENDPOINT"
 echo "  Data Endpoint: $DATA_ENDPOINT"
+echo "  API Key ID: $API_KEY_ID"
+if [ "$API_KEY_VALUE" != "<RETRIEVE_FROM_AWS_CONSOLE>" ]; then
+  echo "  API Key: $API_KEY_VALUE (KEEP THIS SECRET!)"
+else
+  echo "  API Key: Retrieve manually using:"
+  echo "    aws apigateway get-api-key --api-key $API_KEY_ID --include-value --query 'value' --output text --region $AWS_REGION"
+fi
 echo ""
 echo "Frontend:"
 echo "  Amplify App ID: $AMPLIFY_APP_ID"
@@ -363,12 +398,13 @@ echo ""
 echo "What was deployed:"
 echo "  ✅ DynamoDB table for medical requests"
 echo "  ✅ Lambda functions (chatbot orchestrator, data handler)"
-echo "  ✅ API Gateway with CORS configuration"
+echo "  ✅ API Gateway with API Key authentication"
+echo "  ✅ Usage plan with rate limiting (10 req/sec, 10k/month)"
 echo "  ✅ Bedrock permissions for Claude AI"
 echo "  ✅ Amplify app for frontend hosting"
 echo "  ✅ IAM roles and policies"
 echo "  ✅ Backend .env file with CDK environment variables"
-echo "  ✅ Frontend .env file with API endpoints"
+echo "  ✅ Frontend .env file with API endpoints and API key"
 echo ""
 echo "Next Steps:"
 echo "  1. Verify the frontend is accessible at: $AMPLIFY_URL"

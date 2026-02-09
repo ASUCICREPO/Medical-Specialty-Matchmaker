@@ -90,22 +90,54 @@ export class MSMBackendStack extends cdk.Stack {
       defaultCorsPreflightOptions: {
         allowOrigins: allowedOrigins,
         allowMethods: ['GET', 'POST', 'OPTIONS'],
-        allowHeaders: ['Content-Type', 'Authorization'],
+        allowHeaders: ['Content-Type', 'X-API-Key'],
         allowCredentials: false,
       },
     });
+
+    // Create API Key
+    const apiKey = chatbotApi.addApiKey('MSMApiKey', {
+      apiKeyName: 'medical-specialty-matchmaker-key',
+      description: 'API Key for Medical Specialty Matchmaker',
+    });
+
+    // Create Usage Plan
+    const usagePlan = chatbotApi.addUsagePlan('MSMUsagePlan', {
+      name: 'Medical Specialty Matchmaker Usage Plan',
+      description: 'Usage plan for Medical Specialty Matchmaker API',
+      throttle: {
+        rateLimit: 10,  // requests per second
+        burstLimit: 20, // maximum concurrent requests
+      },
+      quota: {
+        limit: 10000,    // requests per period
+        period: apigateway.Period.MONTH,
+      },
+    });
+
+    // Associate API Key with Usage Plan
+    usagePlan.addApiKey(apiKey);
 
     // Create API resources and methods
     const chatbotResource = chatbotApi.root.addResource('chatbot');
     const dataResource = chatbotApi.root.addResource('data');
 
-    // Chatbot orchestrator integration
+    // Chatbot orchestrator integration with API Key requirement
     const chatbotIntegration = new apigateway.LambdaIntegration(chatbotOrchestratorFn);
-    chatbotResource.addMethod('POST', chatbotIntegration);
+    const chatbotMethod = chatbotResource.addMethod('POST', chatbotIntegration, {
+      apiKeyRequired: true,
+    });
 
-    // Data handler integration
+    // Data handler integration with API Key requirement
     const dataIntegration = new apigateway.LambdaIntegration(dataHandlerFn);
-    dataResource.addMethod('POST', dataIntegration);
+    const dataMethod = dataResource.addMethod('POST', dataIntegration, {
+      apiKeyRequired: true,
+    });
+
+    // Add methods to usage plan
+    usagePlan.addApiStage({
+      stage: chatbotApi.deploymentStage,
+    });
 
     // Output the API URL
     new cdk.CfnOutput(this, 'ApiUrl', {
@@ -123,19 +155,35 @@ export class MSMBackendStack extends cdk.Stack {
       description: 'Data Handler API Endpoint',
     });
 
-    // Get GitHub token from Secrets Manager
-    const githubSecret = secretsmanager.Secret.fromSecretNameV2(
-      this, 
-      'GitHubToken', 
-      'github-token'
-    );
+    // GitHub token handling - Use dynamic reference to avoid exposing token
+    // This approach uses CloudFormation dynamic references which are resolved at runtime
+    // The token value never appears in the CloudFormation template or outputs
+    
+    // Check if GitHub secret exists (optional)
+    let hasGitHubToken = false;
+    let githubTokenReference: string | undefined;
+    
+    try {
+      const githubSecret = secretsmanager.Secret.fromSecretNameV2(
+        this, 
+        'GitHubToken', 
+        'github-token'
+      );
+      
+      // Use CloudFormation dynamic reference instead of unsafeUnwrap()
+      // This resolves the secret at runtime without exposing it in the template
+      githubTokenReference = `{{resolve:secretsmanager:${githubSecret.secretArn}:SecretString}}`;
+      hasGitHubToken = true;
+    } catch (error) {
+      // Secret doesn't exist - Amplify will be created without GitHub integration
+      console.warn('GitHub token not found in Secrets Manager. Amplify will be created without automatic deployments.');
+    }
 
     // Amplify App for Frontend Deployment
-    const amplifyApp = new amplify.CfnApp(this, 'MedicalSpecialtyMatchmakerApp', {
+    // Build props conditionally based on GitHub token availability
+    const baseAmplifyProps = {
       name: 'medical-specialty-matchmaker',
       description: 'Medical Specialty Matchmaker Frontend',
-      repository: 'https://github.com/ASUCICREPO/Medical-Specialty-Matchmaker',
-      accessToken: githubSecret.secretValue.unsafeUnwrap(),
       platform: 'WEB_COMPUTE',
       buildSpec: `version: 1
 applications:
@@ -172,22 +220,42 @@ applications:
           value: `${chatbotApi.url}data`
         }
       ]
-    });
+    };
 
-    // Create main branch
-    const amplifyBranch = new amplify.CfnBranch(this, 'MainBranch', {
-      appId: amplifyApp.attrAppId,
-      branchName: 'main',
-      enableAutoBuild: true,
-      enablePerformanceMode: true,
-      framework: 'Next.js - SSR'
-    });
+    // Create Amplify app with or without GitHub integration
+    // Using CloudFormation dynamic reference - token is resolved at runtime
+    // and never appears in the template or outputs
+    const amplifyApp = hasGitHubToken && githubTokenReference
+      ? new amplify.CfnApp(this, 'MedicalSpecialtyMatchmakerApp', {
+          ...baseAmplifyProps,
+          repository: 'https://github.com/ASUCICREPO/Medical-Specialty-Matchmaker',
+          // Use dynamic reference - token is NOT exposed in CloudFormation template
+          accessToken: githubTokenReference,
+        })
+      : new amplify.CfnApp(this, 'MedicalSpecialtyMatchmakerApp', baseAmplifyProps);
 
-    // Output Amplify App URL
-    new cdk.CfnOutput(this, 'AmplifyAppUrl', {
-      value: `https://${amplifyBranch.branchName}.${amplifyApp.attrDefaultDomain}`,
-      description: 'Amplify App URL',
-    });
+    // Create main branch (only if GitHub is connected)
+    if (hasGitHubToken) {
+      const amplifyBranch = new amplify.CfnBranch(this, 'MainBranch', {
+        appId: amplifyApp.attrAppId,
+        branchName: 'main',
+        enableAutoBuild: true,
+        enablePerformanceMode: true,
+        framework: 'Next.js - SSR'
+      });
+
+      // Output Amplify App URL with branch
+      new cdk.CfnOutput(this, 'AmplifyAppUrl', {
+        value: `https://${amplifyBranch.branchName}.${amplifyApp.attrDefaultDomain}`,
+        description: 'Amplify App URL',
+      });
+    } else {
+      // Output Amplify App URL without branch (manual deployment)
+      new cdk.CfnOutput(this, 'AmplifyAppUrl', {
+        value: `https://main.${amplifyApp.attrDefaultDomain}`,
+        description: 'Amplify App URL (manual deployment required)',
+      });
+    }
 
     new cdk.CfnOutput(this, 'AmplifyAppId', {
       value: amplifyApp.attrAppId,
@@ -202,6 +270,24 @@ applications:
     new cdk.CfnOutput(this, 'AllowedOrigins', {
       value: allowedOrigins.join(','),
       description: 'Allowed CORS Origins',
+    });
+
+    // Output API Key ID (not the actual key value)
+    new cdk.CfnOutput(this, 'ApiKeyId', {
+      value: apiKey.keyId,
+      description: 'API Key ID (retrieve actual key from AWS Console or CLI)',
+    });
+
+    // Output command to retrieve API key
+    new cdk.CfnOutput(this, 'GetApiKeyCommand', {
+      value: `aws apigateway get-api-key --api-key ${apiKey.keyId} --include-value --query 'value' --output text --region ${this.region}`,
+      description: 'Command to retrieve API Key value',
+    });
+
+    // Output GitHub integration status
+    new cdk.CfnOutput(this, 'GitHubIntegration', {
+      value: hasGitHubToken ? 'Enabled - Automatic deployments from GitHub' : 'Disabled - Manual deployment required',
+      description: 'GitHub Integration Status',
     });
   }
 }
