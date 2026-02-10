@@ -196,8 +196,6 @@ applications:
             - npm ci
         build:
           commands:
-            - echo "NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL" > .env.production
-            - echo "NEXT_PUBLIC_DATA_URL=$NEXT_PUBLIC_DATA_URL" >> .env.production
             - npm run build
       artifacts:
         baseDirectory: .next
@@ -219,6 +217,10 @@ applications:
         {
           name: 'NEXT_PUBLIC_DATA_URL',
           value: `${chatbotApi.url}data`
+        },
+        {
+          name: 'API_KEY',
+          value: apiKey.keyId  // This will be resolved to the actual key value
         }
       ]
     };

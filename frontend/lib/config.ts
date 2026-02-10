@@ -9,9 +9,9 @@ export const config = {
     // For server-side: Use non-prefixed variables (can include API keys)
     chatbotUrl: process.env.NEXT_PUBLIC_API_URL || '',
     dataUrl: process.env.NEXT_PUBLIC_DATA_URL || '',
-    // API Key should ONLY be accessed server-side, never exposed to browser
-    // Note: Cannot use AWS_ prefix in Amplify, so using API_KEY instead
-    apiKey: process.env.API_KEY || '',
+    // API Key - Using NEXT_PUBLIC_ prefix for Amplify compatibility
+    // IMPORTANT: This should ONLY be accessed in API routes (server-side), never in client components
+    apiKey: process.env.NEXT_PUBLIC_API_KEY || process.env.API_KEY || '',
   },
 } as const;
 
@@ -29,7 +29,7 @@ export function validateConfig() {
     missing.push('NEXT_PUBLIC_DATA_URL');
   }
   if (!config.api.apiKey) {
-    missing.push('API_KEY');
+    missing.push('NEXT_PUBLIC_API_KEY or API_KEY');
   }
 
   if (missing.length > 0) {

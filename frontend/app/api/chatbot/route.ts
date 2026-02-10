@@ -11,7 +11,8 @@ export async function POST(request: NextRequest) {
       hasApiKey: !!config.api.apiKey,
       apiKeyLength: config.api.apiKey?.length || 0,
       envApiKey: process.env.API_KEY ? 'present' : 'missing',
-      allEnvKeys: Object.keys(process.env).filter(k => k.includes('API')).join(', ')
+      envNextPublicApiKey: process.env.NEXT_PUBLIC_API_KEY ? 'present' : 'missing',
+      allEnvKeys: Object.keys(process.env).filter(k => k.includes('API') || k.includes('NEXT')).join(', ')
     });
 
     // Validate configuration
@@ -26,7 +27,9 @@ export async function POST(request: NextRequest) {
         error: 'AWS API Key not configured. Please check your environment variables.',
         debug: {
           envApiKey: process.env.API_KEY ? 'present' : 'missing',
-          configApiKey: config.api.apiKey ? 'present' : 'missing'
+          envNextPublicApiKey: process.env.NEXT_PUBLIC_API_KEY ? 'present' : 'missing',
+          configApiKey: config.api.apiKey ? 'present' : 'missing',
+          allEnvKeys: Object.keys(process.env).filter(k => k.includes('API') || k.includes('NEXT')).join(', ')
         }
       }, { status: 500 });
     }
