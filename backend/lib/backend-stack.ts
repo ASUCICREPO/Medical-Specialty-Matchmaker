@@ -196,6 +196,15 @@ applications:
             - npm ci
         build:
           commands:
+            - |
+              cat > lib/runtime-config.ts << 'EOF'
+              // Auto-generated at build time - DO NOT EDIT
+              export const runtimeConfig = {
+                apiUrl: '$NEXT_PUBLIC_API_URL',
+                dataUrl: '$NEXT_PUBLIC_DATA_URL',
+                apiKey: '$NEXT_PUBLIC_API_KEY',
+              };
+              EOF
             - npm run build
       artifacts:
         baseDirectory: .next

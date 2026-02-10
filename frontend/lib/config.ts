@@ -3,15 +3,13 @@
  * Centralizes environment variable access for better maintainability
  */
 
+import { runtimeConfig } from './runtime-config';
+
 export const config = {
   api: {
-    // For client-side: Use NEXT_PUBLIC_ prefixed variables (URLs only, no secrets)
-    // For server-side: Use non-prefixed variables (can include API keys)
-    chatbotUrl: process.env.NEXT_PUBLIC_API_URL || '',
-    dataUrl: process.env.NEXT_PUBLIC_DATA_URL || '',
-    // API Key - Using NEXT_PUBLIC_ prefix for Amplify compatibility
-    // IMPORTANT: This should ONLY be accessed in API routes (server-side), never in client components
-    apiKey: process.env.NEXT_PUBLIC_API_KEY || process.env.API_KEY || '',
+    chatbotUrl: runtimeConfig.apiUrl,
+    dataUrl: runtimeConfig.dataUrl,
+    apiKey: runtimeConfig.apiKey,
   },
 } as const;
 
