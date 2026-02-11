@@ -3,13 +3,10 @@
  * Centralizes environment variable access for better maintainability
  */
 
-import { runtimeConfig } from './runtime-config';
-
 export const config = {
   api: {
-    chatbotUrl: runtimeConfig.apiUrl,
-    dataUrl: runtimeConfig.dataUrl,
-    apiKey: runtimeConfig.apiKey,
+    chatbotUrl: process.env.CHAT_URL,
+    dataUrl: process.env.DATA_URL,
   },
 } as const;
 
@@ -21,13 +18,10 @@ export function validateConfig() {
   const missing: string[] = [];
 
   if (!config.api.chatbotUrl) {
-    missing.push('NEXT_PUBLIC_API_URL');
+    missing.push('CHAT_URL');
   }
   if (!config.api.dataUrl) {
-    missing.push('NEXT_PUBLIC_DATA_URL');
-  }
-  if (!config.api.apiKey) {
-    missing.push('NEXT_PUBLIC_API_KEY or API_KEY');
+    missing.push('DATA_URL');
   }
 
   if (missing.length > 0) {

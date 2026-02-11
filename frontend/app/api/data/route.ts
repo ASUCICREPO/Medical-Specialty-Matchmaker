@@ -15,17 +15,10 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    if (!config.api.apiKey) {
-      return NextResponse.json({ 
-        error: 'AWS API Key not configured. Please check your environment variables.' 
-      }, { status: 500 });
-    }
-
     const response = await fetch(config.api.dataUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-API-Key': config.api.apiKey,
       },
       body: JSON.stringify({ action, data }),
     });
@@ -43,6 +36,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     console.error('❌ Data API Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ 'error': 'Internal server error', 'message': error }, { status: 500 });
   }
 }

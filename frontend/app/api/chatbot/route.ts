@@ -7,13 +7,6 @@ export async function POST(request: NextRequest) {
     const { action, data } = body;
 
     console.log('📥 API Request:', { action });
-    console.log('🔍 Environment check:', {
-      hasApiKey: !!config.api.apiKey,
-      apiKeyLength: config.api.apiKey?.length || 0,
-      envApiKey: process.env.API_KEY ? 'present' : 'missing',
-      envNextPublicApiKey: process.env.NEXT_PUBLIC_API_KEY ? 'present' : 'missing',
-      allEnvKeys: Object.keys(process.env).filter(k => k.includes('API') || k.includes('NEXT')).join(', ')
-    });
 
     // Validate configuration
     if (!config.api.chatbotUrl) {
@@ -22,23 +15,10 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    if (!config.api.apiKey) {
-      return NextResponse.json({ 
-        error: 'AWS API Key not configured. Please check your environment variables.',
-        debug: {
-          envApiKey: process.env.API_KEY ? 'present' : 'missing',
-          envNextPublicApiKey: process.env.NEXT_PUBLIC_API_KEY ? 'present' : 'missing',
-          configApiKey: config.api.apiKey ? 'present' : 'missing',
-          allEnvKeys: Object.keys(process.env).filter(k => k.includes('API') || k.includes('NEXT')).join(', ')
-        }
-      }, { status: 500 });
-    }
-
     const response = await fetch(config.api.chatbotUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-API-Key': config.api.apiKey,
       },
       body: JSON.stringify({ action, data }),
     });
@@ -56,6 +36,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     console.error('❌ API Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ 'error': 'Internal server error', 'message': error }, { status: 500 });
   }
 }

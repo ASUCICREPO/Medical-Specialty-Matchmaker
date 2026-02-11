@@ -21,12 +21,6 @@ def lambda_handler(event, context):
     try:
         logger.info(f"Received request from API Gateway")
         
-        # Validate API Key is present (API Gateway should enforce this, but double-check)
-        api_key = event.get('headers', {}).get('x-api-key') or event.get('headers', {}).get('X-API-Key')
-        if not api_key:
-            logger.warning("Request missing API key")
-            return create_response(401, {'error': 'Unauthorized - API key required'}, None)
-        
         # Get the origin from the request for CORS validation
         request_origin = event.get('headers', {}).get('origin') or event.get('headers', {}).get('Origin')
         
@@ -34,11 +28,7 @@ def lambda_handler(event, context):
         body = json.loads(event.get('body', '{}'))
         action = body.get('action')
         data = body.get('data', {})
-        
-        # Validate action
-        if not action:
-            return create_response(400, {'error': 'Missing action parameter'}, request_origin)
-        
+
         if action == 'submit':
             return handle_submit_request(data, request_origin)
         elif action == 'get':
@@ -235,7 +225,7 @@ def create_response(status_code: int, body: dict, request_origin: str = None) ->
         'headers': {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': origin,
-            'Access-Control-Allow-Headers': 'Content-Type,X-API-Key',
+            'Access-Control-Allow-Headers': 'Content-Type',
             'Access-Control-Allow-Methods': 'OPTIONS,POST,GET',
             'Vary': 'Origin'  # Important for caching with multiple allowed origins
         },

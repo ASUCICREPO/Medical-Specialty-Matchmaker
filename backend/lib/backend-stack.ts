@@ -90,54 +90,26 @@ export class MSMBackendStack extends cdk.Stack {
       defaultCorsPreflightOptions: {
         allowOrigins: allowedOrigins,
         allowMethods: ['GET', 'POST', 'OPTIONS'],
-        allowHeaders: ['Content-Type', 'X-API-Key'],
+        allowHeaders: ['Content-Type', 'Authorization'],
         allowCredentials: false,
         maxAge: cdk.Duration.hours(1),
       },
     });
 
-    // Create API Key
-    const apiKey = chatbotApi.addApiKey('MSMApiKey', {
-      apiKeyName: 'medical-specialty-matchmaker-key',
-      description: 'API Key for Medical Specialty Matchmaker',
-    });
-
-    // Create Usage Plan
-    const usagePlan = chatbotApi.addUsagePlan('MSMUsagePlan', {
-      name: 'Medical Specialty Matchmaker Usage Plan',
-      description: 'Usage plan for Medical Specialty Matchmaker API',
-      throttle: {
-        rateLimit: 10,  // requests per second
-        burstLimit: 20, // maximum concurrent requests
-      },
-      quota: {
-        limit: 10000,    // requests per period
-        period: apigateway.Period.MONTH,
-      },
-    });
-
-    // Associate API Key with Usage Plan
-    usagePlan.addApiKey(apiKey);
-
     // Create API resources and methods
     const chatbotResource = chatbotApi.root.addResource('chatbot');
     const dataResource = chatbotApi.root.addResource('data');
 
-    // Chatbot orchestrator integration with API Key requirement
+    // Chatbot orchestrator integration (API Key disabled for now - will add auth later)
     const chatbotIntegration = new apigateway.LambdaIntegration(chatbotOrchestratorFn);
     const chatbotMethod = chatbotResource.addMethod('POST', chatbotIntegration, {
-      apiKeyRequired: true,
+      apiKeyRequired: false, // TODO: Add proper authentication (Cognito or API Key)
     });
 
-    // Data handler integration with API Key requirement
+    // Data handler integration (API Key disabled for now - will add auth later)
     const dataIntegration = new apigateway.LambdaIntegration(dataHandlerFn);
     const dataMethod = dataResource.addMethod('POST', dataIntegration, {
-      apiKeyRequired: true,
-    });
-
-    // Add methods to usage plan
-    usagePlan.addApiStage({
-      stage: chatbotApi.deploymentStage,
+      apiKeyRequired: false, // TODO: Add proper authentication (Cognito or API Key)
     });
 
     // Output the API URL
@@ -196,15 +168,6 @@ applications:
             - npm ci
         build:
           commands:
-            - |
-              cat > lib/runtime-config.ts << 'EOF'
-              // Auto-generated at build time - DO NOT EDIT
-              export const runtimeConfig = {
-                apiUrl: '$NEXT_PUBLIC_API_URL',
-                dataUrl: '$NEXT_PUBLIC_DATA_URL',
-                apiKey: '$NEXT_PUBLIC_API_KEY',
-              };
-              EOF
             - npm run build
       artifacts:
         baseDirectory: .next
@@ -226,10 +189,6 @@ applications:
         {
           name: 'NEXT_PUBLIC_DATA_URL',
           value: `${chatbotApi.url}data`
-        },
-        {
-          name: 'API_KEY',
-          value: apiKey.keyId  // This will be resolved to the actual key value
         }
       ]
     };
@@ -282,18 +241,6 @@ applications:
     new cdk.CfnOutput(this, 'AllowedOrigins', {
       value: allowedOrigins.join(','),
       description: 'Allowed CORS Origins',
-    });
-
-    // Output API Key ID (not the actual key value)
-    new cdk.CfnOutput(this, 'ApiKeyId', {
-      value: apiKey.keyId,
-      description: 'API Key ID (retrieve actual key from AWS Console or CLI)',
-    });
-
-    // Output command to retrieve API key
-    new cdk.CfnOutput(this, 'GetApiKeyCommand', {
-      value: `aws apigateway get-api-key --api-key ${apiKey.keyId} --include-value --query 'value' --output text --region ${this.region}`,
-      description: 'Command to retrieve API Key value',
     });
 
     // Output GitHub integration status
