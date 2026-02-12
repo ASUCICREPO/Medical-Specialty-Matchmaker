@@ -266,8 +266,8 @@ The main stack (`MSMBackendStack`) defines all AWS resources:
      repository: 'https://github.com/ASUCICREPO/Medical-Specialty-Matchmaker',
      platform: 'WEB_COMPUTE',
      environmentVariables: [
-       { name: 'NEXT_PUBLIC_API_URL', value: `${chatbotApi.url}chatbot` },
-       { name: 'NEXT_PUBLIC_DATA_URL', value: `${chatbotApi.url}data` }
+       { name: 'CHAT_URL', value: `${chatbotApi.url}chatbot` },
+       { name: 'DATA_URL', value: `${chatbotApi.url}data` }
      ]
    });
    ```

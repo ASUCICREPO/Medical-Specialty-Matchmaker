@@ -183,11 +183,11 @@ applications:
           value: 'frontend'
         },
         {
-          name: 'NEXT_PUBLIC_API_URL',
+          name: 'CHAT_URL',
           value: `${chatbotApi.url}chatbot`
         },
         {
-          name: 'NEXT_PUBLIC_DATA_URL',
+          name: 'DATA_URL',
           value: `${chatbotApi.url}data`
         }
       ]

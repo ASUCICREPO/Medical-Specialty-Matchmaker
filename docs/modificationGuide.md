@@ -150,7 +150,7 @@ To add new API calls:
 ```typescript
 // frontend/app/lib/api.ts
 export async function sendChatMessage(message: string, history: any[]) {
-  const response = await fetch(process.env.NEXT_PUBLIC_API_URL!, {
+  const response = await fetch(process.env.CHAT_URL!, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

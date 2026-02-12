@@ -281,23 +281,6 @@ EOF
 print_success "Frontend environment configured"
 print_status "Created frontend/.env file with API endpoints and API key"
 
-# Configure Amplify environment variables
-if [ -n "$AMPLIFY_APP_ID" ] && [ "$AMPLIFY_APP_ID" != "None" ]; then
-  print_status "Configuring Amplify environment variables..."
-  
-  if aws amplify update-app \
-      --app-id "$AMPLIFY_APP_ID" \
-      --region "$AWS_REGION" \
-      --environment-variables \
-        CHAT_URL="$CHATBOT_ENDPOINT" \
-        DATA_URL="$DATA_ENDPOINT" \
-      > /dev/null 2>&1; then
-    print_success "Amplify environment variables configured"
-  else
-    print_warning "Could not update Amplify environment variables (app may not exist yet)"
-  fi
-fi
-
 cd ..
 
 # --- Phase 7: Trigger Amplify Build ---
