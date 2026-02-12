@@ -190,12 +190,21 @@ print_success "Backend infrastructure deployed successfully"
 print_status "Phase 5: Extracting Deployment Information..."
 
 if [ -f "cdk-outputs.json" ]; then
-  API_GATEWAY_URL=$(cat cdk-outputs.json | grep -o '"ApiUrl": "[^"]*' | cut -d'"' -f4)
-  CHATBOT_ENDPOINT=$(cat cdk-outputs.json | grep -o '"ChatbotEndpoint": "[^"]*' | cut -d'"' -f4)
-  DATA_ENDPOINT=$(cat cdk-outputs.json | grep -o '"DataEndpoint": "[^"]*' | cut -d'"' -f4)
-  AMPLIFY_APP_ID=$(cat cdk-outputs.json | grep -o '"AmplifyAppId": "[^"]*' | cut -d'"' -f4)
-  AMPLIFY_URL=$(cat cdk-outputs.json | grep -o '"AmplifyAppUrl": "[^"]*' | cut -d'"' -f4)
-  API_KEY_ID=$(cat cdk-outputs.json | grep -o '"ApiKeyId": "[^"]*' | cut -d'"' -f4)
+  # Use jq if available, otherwise use grep with proper JSON structure
+  if command -v jq &> /dev/null; then
+    API_GATEWAY_URL=$(jq -r ".${STACK_NAME}.ApiUrl // empty" cdk-outputs.json)
+    CHATBOT_ENDPOINT=$(jq -r ".${STACK_NAME}.ChatbotEndpoint // empty" cdk-outputs.json)
+    DATA_ENDPOINT=$(jq -r ".${STACK_NAME}.DataEndpoint // empty" cdk-outputs.json)
+    AMPLIFY_APP_ID=$(jq -r ".${STACK_NAME}.AmplifyAppId // empty" cdk-outputs.json)
+    AMPLIFY_URL=$(jq -r ".${STACK_NAME}.AmplifyAppUrl // empty" cdk-outputs.json)
+  else
+    # Fallback to grep with corrected patterns for nested JSON
+    API_GATEWAY_URL=$(grep -A 1 '"ApiUrl"' cdk-outputs.json | grep -o 'https://[^"]*' | head -1)
+    CHATBOT_ENDPOINT=$(grep -A 1 '"ChatbotEndpoint"' cdk-outputs.json | grep -o 'https://[^"]*' | head -1)
+    DATA_ENDPOINT=$(grep -A 1 '"DataEndpoint"' cdk-outputs.json | grep -o 'https://[^"]*' | head -1)
+    AMPLIFY_APP_ID=$(grep -A 1 '"AmplifyAppId"' cdk-outputs.json | grep -o ': "[^"]*' | cut -d'"' -f2 | head -1)
+    AMPLIFY_URL=$(grep -A 1 '"AmplifyAppUrl"' cdk-outputs.json | grep -o 'https://[^"]*' | head -1)
+  fi
 fi
 
 # Fallback to CloudFormation if outputs file parsing fails
@@ -225,32 +234,6 @@ if [ -z "$API_GATEWAY_URL" ]; then
     --stack-name "$STACK_NAME" \
     --query "Stacks[0].Outputs[?OutputKey=='AmplifyAppUrl'].OutputValue" \
     --output text --region "$AWS_REGION")
-  
-  API_KEY_ID=$(aws cloudformation describe-stacks \
-    --stack-name "$STACK_NAME" \
-    --query "Stacks[0].Outputs[?OutputKey=='ApiKeyId'].OutputValue" \
-    --output text --region "$AWS_REGION")
-fi
-
-# Retrieve the actual API Key value
-print_status "Retrieving API Key..."
-if [ -n "$API_KEY_ID" ] && [ "$API_KEY_ID" != "None" ]; then
-  API_KEY_VALUE=$(aws apigateway get-api-key \
-    --api-key "$API_KEY_ID" \
-    --include-value \
-    --query 'value' \
-    --output text \
-    --region "$AWS_REGION" 2>/dev/null)
-  
-  if [ -n "$API_KEY_VALUE" ] && [ "$API_KEY_VALUE" != "None" ]; then
-    print_success "API Key retrieved successfully"
-  else
-    print_warning "Could not retrieve API Key value. You may need to retrieve it manually."
-    API_KEY_VALUE="<RETRIEVE_FROM_AWS_CONSOLE>"
-  fi
-else
-  print_warning "API Key ID not found in outputs"
-  API_KEY_VALUE="<RETRIEVE_FROM_AWS_CONSOLE>"
 fi
 
 print_success "Deployment outputs extracted"
@@ -288,15 +271,11 @@ print_status "CORS allowed origins: $ALLOWED_ORIGINS"
 
 cd ../frontend
 
-# Create .env file with API endpoints and API key
+# Create .env file with API endpoints
 cat > .env << EOF
 # API Gateway URLs (safe to expose to browser)
-NEXT_PUBLIC_API_URL=$CHATBOT_ENDPOINT
-NEXT_PUBLIC_DATA_URL=$DATA_ENDPOINT
-
-# API Key (server-side only - NEVER exposed to browser)
-# Note: Cannot use AWS_ prefix in Amplify
-API_KEY=$API_KEY_VALUE
+CHAT_URL=$CHATBOT_ENDPOINT
+DATA_URL=$DATA_ENDPOINT
 EOF
 
 print_success "Frontend environment configured"
@@ -306,23 +285,16 @@ print_status "Created frontend/.env file with API endpoints and API key"
 if [ -n "$AMPLIFY_APP_ID" ] && [ "$AMPLIFY_APP_ID" != "None" ]; then
   print_status "Configuring Amplify environment variables..."
   
-  aws amplify update-app \
-    --app-id "$AMPLIFY_APP_ID" \
-    --region "$AWS_REGION" \
-    --environment-variables \
-      NEXT_PUBLIC_API_URL="$CHATBOT_ENDPOINT" \
-      NEXT_PUBLIC_DATA_URL="$DATA_ENDPOINT" \
-      API_KEY="$API_KEY_VALUE" \
-    > /dev/null 2>&1
-  
-  if [ $? -eq 0 ]; then
+  if aws amplify update-app \
+      --app-id "$AMPLIFY_APP_ID" \
+      --region "$AWS_REGION" \
+      --environment-variables \
+        CHAT_URL="$CHATBOT_ENDPOINT" \
+        DATA_URL="$DATA_ENDPOINT" \
+      > /dev/null 2>&1; then
     print_success "Amplify environment variables configured"
   else
-    print_warning "Could not configure Amplify environment variables automatically"
-    echo "Please set them manually in Amplify Console:"
-    echo "  NEXT_PUBLIC_API_URL=$CHATBOT_ENDPOINT"
-    echo "  NEXT_PUBLIC_DATA_URL=$DATA_ENDPOINT"
-    echo "  API_KEY=$API_KEY_VALUE"
+    print_warning "Could not update Amplify environment variables (app may not exist yet)"
   fi
 fi
 
@@ -411,13 +383,6 @@ echo "Backend Resources:"
 echo "  API Gateway URL: $API_GATEWAY_URL"
 echo "  Chatbot Endpoint: $CHATBOT_ENDPOINT"
 echo "  Data Endpoint: $DATA_ENDPOINT"
-echo "  API Key ID: $API_KEY_ID"
-if [ "$API_KEY_VALUE" != "<RETRIEVE_FROM_AWS_CONSOLE>" ]; then
-  echo "  API Key: $API_KEY_VALUE (KEEP THIS SECRET!)"
-else
-  echo "  API Key: Retrieve manually using:"
-  echo "    aws apigateway get-api-key --api-key $API_KEY_ID --include-value --query 'value' --output text --region $AWS_REGION"
-fi
 echo ""
 echo "Frontend:"
 echo "  Amplify App ID: $AMPLIFY_APP_ID"
@@ -426,13 +391,12 @@ echo ""
 echo "What was deployed:"
 echo "  ✅ DynamoDB table for medical requests"
 echo "  ✅ Lambda functions (chatbot orchestrator, data handler)"
-echo "  ✅ API Gateway with API Key authentication"
-echo "  ✅ Usage plan with rate limiting (10 req/sec, 10k/month)"
+echo "  ✅ API Gateway with CORS enabled"
 echo "  ✅ Bedrock permissions for Claude AI"
 echo "  ✅ Amplify app for frontend hosting"
 echo "  ✅ IAM roles and policies"
 echo "  ✅ Backend .env file with CDK environment variables"
-echo "  ✅ Frontend .env file with API endpoints and API key"
+echo "  ✅ Frontend .env file with API endpoints"
 echo ""
 echo "Next Steps:"
 echo "  1. Verify the frontend is accessible at: $AMPLIFY_URL"
